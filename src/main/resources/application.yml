@@ -1,0 +1,69 @@
+spring:
+  application:
+    name: bookstore-website
+  
+  # DevTools 설정 (개발 환경 자동 재시작)
+  devtools:
+    restart:
+      enabled: true              # 재시작 활성화
+      additional-paths: src/main/java  # 감시할 추가 경로
+    livereload:
+      enabled: true              # 라이브 리로드 활성화
+    remote:
+      restart:
+        enabled: false           # 원격 재시작 비활성화 (보안)
+  
+  # JSP View Resolver 설정
+  mvc:
+    view:
+      prefix: /WEB-INF/views/
+      suffix: .jsp
+  
+  # 데이터베이스 연결 설정
+  datasource:
+    url: jdbc:mysql://localhost:33006/bookstore?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=Asia/Seoul&characterEncoding=UTF-8
+    username: bookstore
+    password: bookstore123
+    driver-class-name: com.mysql.cj.jdbc.Driver
+    
+  # JPA 설정
+  jpa:
+    hibernate:
+      ddl-auto: update
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.MySQLDialect
+        format_sql: true  # SQL 포맷팅
+        show_sql: true    # SQL 로그 출력
+    show-sql: true
+  
+  # 이메일 발송 설정 (Naver SMTP)
+  mail:
+    host: smtp.naver.com
+    port: 587
+    username: codepresso5@naver.com # ${EMAIL_USERNAME:}  환경변수로 설정
+    password: D4L4GB37HUJM  # ${EMAIL_PASSWORD:}  앱 비밀번호 사용
+    properties:
+      mail:
+        smtp:
+          auth: true
+          starttls:
+            enable: true
+          ssl:
+            trust: smtp.naver.com
+    
+  # 로깅 설정
+logging:
+  level:
+    org.hibernate.SQL: debug
+    org.hibernate.type.descriptor.sql.BasicBinder: trace
+    
+# 서버 포트 및 인코딩 설정
+server:
+  servlet:
+    encoding:
+      charset: UTF-8
+      enabled: true
+      force: true
+  port: 8080
+
