@@ -639,19 +639,31 @@
         // 전역 변수에 리뷰 데이터 저장
         currentReview = review;
         
-        reviewSection.innerHTML = `
-            <div class="review-item">
-                <div class="review-header">
-                    <span class="review-author">내 리뷰</span>
-                    <span class="review-date">${reviewDate}</span>
-                </div>
-                <div class="review-rating">${stars}</div>
-                <div class="review-content">${review.content}</div>
-                <div class="review-actions">
-                    <button class="btn btn-danger btn-small" onclick="deleteReview(${review.reviewId})">삭제</button>
-                </div>
-            </div>
-        `;
+        // 안전한 변수 처리
+        const reviewContent = review.content || '리뷰 내용이 없습니다.';
+        const reviewId = review.reviewId || 0;
+        
+        console.log('처리된 리뷰 내용:', reviewContent);
+        console.log('처리된 reviewId:', reviewId);
+        
+        // HTML 직접 생성 방식으로 변경
+        const reviewItem = document.createElement('div');
+        reviewItem.className = 'review-item';
+        reviewItem.setAttribute('data-review-id', reviewId); // data 속성으로 reviewId 저장
+        
+        reviewItem.innerHTML = 
+            '<div class="review-header">' +
+                '<span class="review-author">내 리뷰</span>' +
+                '<span class="review-date">' + reviewDate + '</span>' +
+            '</div>' +
+            '<div class="review-rating">' + stars + '</div>' +
+            '<div class="review-content">' + reviewContent + '</div>' +
+            '<div class="review-actions">' +
+                '<button class="btn btn-danger btn-small" onclick="deleteReviewFromButton(this)">삭제</button>' +
+            '</div>';
+        
+        reviewSection.innerHTML = '';
+        reviewSection.appendChild(reviewItem);
     }
 
     // 리뷰 작성 폼 표시
@@ -761,6 +773,23 @@
     }
 
 
+    // 버튼에서 리뷰 삭제 (새로운 방법)
+    async function deleteReviewFromButton(button) {
+        const reviewItem = button.closest('.review-item');
+        const reviewId = reviewItem.getAttribute('data-review-id');
+        
+        console.log('deleteReviewFromButton 호출됨');
+        console.log('reviewItem:', reviewItem);
+        console.log('reviewId from data attribute:', reviewId);
+        
+        if (!reviewId || reviewId === '0') {
+            alert('삭제할 리뷰 ID를 찾을 수 없습니다.');
+            return;
+        }
+        
+        await deleteReview(reviewId);
+    }
+
     // 현재 리뷰 삭제
     async function deleteCurrentReview() {
         console.log('deleteCurrentReview 호출됨, currentReview:', currentReview);
@@ -775,14 +804,32 @@
     // 리뷰 삭제
     async function deleteReview(reviewId) {
         console.log('리뷰 삭제 요청:', reviewId);
+        console.log('reviewId 타입:', typeof reviewId);
+        console.log('reviewId 값:', reviewId);
+        
+        // reviewId를 숫자로 변환
+        const numericReviewId = parseInt(reviewId);
+        console.log('변환된 reviewId:', numericReviewId);
+        
+        if (!numericReviewId || numericReviewId === 0 || isNaN(numericReviewId)) {
+            alert('삭제할 리뷰 ID가 올바르지 않습니다.');
+            return;
+        }
         
         if (!confirm('정말로 이 리뷰를 삭제하시겠습니까?')) {
             return;
         }
 
         try {
-            console.log('삭제 API 호출:', `/api/reviews/${reviewId}`);
-            const response = await fetch(`/api/reviews/${reviewId}`, {
+            // 더 안전한 URL 생성
+            const baseUrl = '/api/reviews/';
+            const deleteUrl = baseUrl + numericReviewId;
+            console.log('삭제 API 호출:', deleteUrl);
+            console.log('baseUrl:', baseUrl);
+            console.log('numericReviewId 값:', numericReviewId);
+            console.log('최종 URL:', deleteUrl);
+            
+            const response = await fetch(deleteUrl, {
                 method: 'DELETE',
                 headers: {
                     'Content-Type': 'application/json'

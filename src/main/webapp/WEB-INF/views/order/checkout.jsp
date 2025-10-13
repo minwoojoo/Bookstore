@@ -737,6 +737,19 @@
             params.append('deliveryAddress', fullAddress);
             params.append('zipCode', zipCode);
             
+            // 직접 구매인 경우 bookId와 quantity 추가
+            const urlParams = new URLSearchParams(window.location.search);
+            const bookId = urlParams.get('bookId');
+            const quantity = urlParams.get('quantity');
+            const directBuy = urlParams.get('directBuy');
+            
+            if (directBuy === 'true' && bookId && quantity) {
+                params.append('bookId', bookId);
+                params.append('quantity', quantity);
+                params.append('directBuy', 'true');
+                console.log('직접 구매 정보 전달:', { bookId, quantity });
+            }
+            
             const deliveryMemo = formData.get('deliveryMemo');
             if (deliveryMemo) {
                 params.append('deliveryMemo', deliveryMemo);

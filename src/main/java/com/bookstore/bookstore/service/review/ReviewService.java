@@ -125,7 +125,10 @@ public class ReviewService {
      * 책의 평균 평점 조회
      */
     public Double getAverageRating(Long bookId) {
-        return reviewRepository.findAverageRatingByBookId(bookId);
+        log.info("책 평균 평점 조회: bookId={}", bookId);
+        Double avgRating = reviewRepository.findAverageRatingByBookId(bookId);
+        log.info("조회된 평균 평점: {}", avgRating);
+        return avgRating;
     }
     
     /**

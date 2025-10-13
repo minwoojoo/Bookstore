@@ -431,7 +431,8 @@ public class HomeController {
             
             // 리뷰 통계
             long reviewCount = reviewService.getReviewCount(bookId);
-            double avgRating = reviewService.getAverageRating(bookId);
+            Double avgRatingValue = reviewService.getAverageRating(bookId);
+            double avgRating = avgRatingValue != null ? avgRatingValue : 0.0;
             model.addAttribute("reviewCount", reviewCount);
             model.addAttribute("avgRating", avgRating);
             

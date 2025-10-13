@@ -36,7 +36,7 @@ public class OrderService {
     private final CartService cartService;
     
     /**
-     * 주문 생성
+     * 주문 생성 (orderId 포함)
      */
     private Order createOrder(Long memberId, String orderId, Integer totalAmount, 
                             String recipientName, String recipientPhone, String deliveryAddress, String memo) {
@@ -55,7 +55,26 @@ public class OrderService {
     }
     
     /**
-     * 주문 아이템 생성
+     * 주문 생성 (orderId 없음 - 직접 구매용)
+     */
+    private Order createOrder(Long memberId, Integer totalAmount, 
+                            String recipientName, String recipientPhone, String deliveryAddress, String memo) {
+        return Order.builder()
+                .memberId(memberId)
+                .totalAmount(totalAmount)
+                .discountAmount(0)
+                .finalPaymentAmount(totalAmount)
+                .orderStatus("PENDING")
+                .recipientName(recipientName)
+                .recipientPhone(recipientPhone)
+                .deliveryAddress(deliveryAddress)
+                .memo(memo)
+                .orderDate(LocalDateTime.now())
+                .build();
+    }
+    
+    /**
+     * 주문 아이템 생성 (장바구니 기반)
      */
     private OrderItem createOrderItem(Order order, CartItemResponse cartItem) {
         // Book 엔티티 조회
@@ -67,6 +86,24 @@ public class OrderService {
                 .bookId(cartItem.getBookId())
                 .quantity(cartItem.getQuantity())
                 .price(cartItem.getPrice().intValue())
+                .order(order)  // Order 엔티티 설정
+                .book(book)    // Book 엔티티 설정
+                .build();
+    }
+    
+    /**
+     * 직접 구매 주문 아이템 생성
+     */
+    private OrderItem createDirectOrderItem(Order order, Long bookId, Integer quantity) {
+        // Book 엔티티 조회
+        Book book = bookRepository.findById(bookId)
+                .orElseThrow(() -> new IllegalArgumentException("도서를 찾을 수 없습니다: " + bookId));
+        
+        return OrderItem.builder()
+                .orderId(order.getOrderId())
+                .bookId(bookId)
+                .quantity(quantity)
+                .price(book.getPrice().intValue())  // BigDecimal을 Integer로 변환
                 .order(order)  // Order 엔티티 설정
                 .book(book)    // Book 엔티티 설정
                 .build();
@@ -147,7 +184,48 @@ public class OrderService {
     }
     
     /**
-     * 결제 성공 처리 (토스페이먼츠 콜백용)
+     * 직접 구매 결제 성공 처리 (장바구니 거치지 않음)
+     */
+    @Transactional
+    public Long processDirectPaymentSuccess(Long memberId, String orderId, String paymentKey, 
+                                          Integer amount, String recipientName, String recipientPhone, 
+                                          String deliveryAddress, String memo, Long bookId, Integer quantity) {
+        log.info("직접 구매 결제 성공 처리 시작: memberId={}, orderId={}, bookId={}, quantity={}", 
+                memberId, orderId, bookId, quantity);
+        
+        try {
+            // 1. 주문 생성
+            log.info("1단계: 주문 생성 시작");
+            Order order = createOrder(memberId, amount, recipientName, recipientPhone, deliveryAddress, memo);
+            log.info("주문 엔티티 생성 완료: {}", order);
+            Order savedOrder = orderRepository.save(order);
+            log.info("주문 생성 완료: orderId={}", savedOrder.getOrderId());
+            
+            // 2. 주문 아이템 생성 (직접 구매 아이템)
+            log.info("2단계: 주문 아이템 생성 시작");
+            OrderItem orderItem = createDirectOrderItem(savedOrder, bookId, quantity);
+            orderItemRepository.save(orderItem);
+            log.info("주문 아이템 저장 완료: {}", orderItem);
+            
+            // 3. 결제 정보 생성
+            log.info("3단계: 결제 정보 생성 시작");
+            Payment payment = createPayment(savedOrder, paymentKey, amount);
+            log.info("결제 엔티티 생성 완료: {}", payment);
+            paymentRepository.save(payment);
+            log.info("결제 정보 생성 완료: paymentId={}", payment.getPaymentId());
+            
+            log.info("직접 구매 결제 성공 처리 완료: orderId={}", savedOrder.getOrderId());
+            return savedOrder.getOrderId();
+            
+        } catch (Exception e) {
+            log.error("직접 구매 결제 성공 처리 실패: memberId={}, orderId={}, error={}", memberId, orderId, e.getMessage(), e);
+            log.error("상세 오류 정보:", e);
+            throw new RuntimeException("결제 처리 중 오류가 발생했습니다: " + e.getMessage(), e);
+        }
+    }
+
+    /**
+     * 결제 성공 처리 (토스페이먼츠 콜백용) - 장바구니 기반
      */
     @Transactional
     public Long processPaymentSuccess(Long memberId, String orderId, String paymentKey, 

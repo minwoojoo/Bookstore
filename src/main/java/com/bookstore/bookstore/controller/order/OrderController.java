@@ -234,6 +234,63 @@ public class OrderController {
     }
     
     /**
+     * 직접 구매 결제 성공 처리 API
+     * POST /api/order/direct-payment-success
+     */
+    @PostMapping("/direct-payment-success")
+    public ResponseEntity<?> processDirectPaymentSuccess(
+            @RequestBody Map<String, Object> paymentData,
+            @AuthenticationPrincipal CustomUserDetails userDetails) {
+        
+        log.info("직접 구매 결제 성공 처리 요청: 사용자={}, 데이터={}", 
+                userDetails != null ? userDetails.getUsername() : "비로그인", paymentData);
+        
+        if (userDetails == null) {
+            return ResponseEntity.status(401).body(Map.of("success", false, "message", "로그인이 필요합니다."));
+        }
+        
+        try {
+            String orderId = (String) paymentData.get("orderId");
+            String paymentKey = (String) paymentData.get("paymentKey");
+            Integer amount = (Integer) paymentData.get("amount");
+            String recipientName = (String) paymentData.get("recipientName");
+            String recipientPhone = (String) paymentData.get("recipientPhone");
+            String deliveryAddress = (String) paymentData.get("deliveryAddress");
+            String memo = (String) paymentData.get("memo");
+            Long bookId = Long.valueOf(paymentData.get("bookId").toString());
+            Integer quantity = Integer.valueOf(paymentData.get("quantity").toString());
+            
+            Long savedOrderId = orderService.processDirectPaymentSuccess(
+                    userDetails.getMemberId(),
+                    orderId,
+                    paymentKey,
+                    amount,
+                    recipientName,
+                    recipientPhone,
+                    deliveryAddress,
+                    memo,
+                    bookId,
+                    quantity
+            );
+            
+            // 주문 상태를 'CONFIRMED' (결제완료)로 업데이트
+            orderService.updateOrderStatus(savedOrderId, "CONFIRMED");
+            
+            return ResponseEntity.ok(Map.of(
+                    "success", true,
+                    "orderId", savedOrderId,
+                    "message", "결제가 성공적으로 처리되었습니다."
+            ));
+        } catch (Exception e) {
+            log.error("직접 구매 결제 성공 처리 실패: {}", e.getMessage(), e);
+            return ResponseEntity.status(500).body(Map.of(
+                    "success", false,
+                    "message", "결제 처리 중 오류가 발생했습니다: " + e.getMessage()
+            ));
+        }
+    }
+    
+    /**
      * 주문 취소
      */
     @PostMapping("/{orderId}/cancel")

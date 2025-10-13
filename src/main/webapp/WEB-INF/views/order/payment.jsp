@@ -355,12 +355,25 @@
                         
                         // 주문 ID 생성
                         const orderId = generateOrderId();
-                        const successUrl = window.location.origin + '/order/payment/success?orderId=' + orderId + 
-                                         '&amount=' + amount +
-                                         '&recipientName=' + encodeURIComponent(recipientName) +
-                                         '&recipientPhone=' + encodeURIComponent(recipientPhone) +
-                                         '&deliveryAddress=' + encodeURIComponent(deliveryAddress) +
-                                         '&memo=' + encodeURIComponent(memo);
+                        
+                        // URL 파라미터에서 직접 구매 정보 확인
+                        const urlParams = new URLSearchParams(window.location.search);
+                        const bookId = urlParams.get('bookId');
+                        const quantity = urlParams.get('quantity');
+                        const directBuy = urlParams.get('directBuy');
+                        
+                        let successUrl = window.location.origin + '/order/payment/success?orderId=' + orderId + 
+                                       '&amount=' + amount +
+                                       '&recipientName=' + encodeURIComponent(recipientName) +
+                                       '&recipientPhone=' + encodeURIComponent(recipientPhone) +
+                                       '&deliveryAddress=' + encodeURIComponent(deliveryAddress) +
+                                       '&memo=' + encodeURIComponent(memo);
+                        
+                        // 직접 구매인 경우 bookId와 quantity 추가
+                        if (directBuy === 'true' && bookId && quantity) {
+                            successUrl += '&bookId=' + bookId + '&quantity=' + quantity + '&directBuy=true';
+                            console.log('직접 구매 successUrl에 정보 추가:', { bookId, quantity });
+                        }
                         
                         console.log('결제 요청 시작:', {
                             orderId: orderId,

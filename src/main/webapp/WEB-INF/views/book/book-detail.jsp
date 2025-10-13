@@ -541,10 +541,43 @@
         }
         
         // 카트에 추가
-        function addToCart() {
+        async function addToCart() {
             const qty = document.getElementById('quantity').value;
-            alert('카트에 추가되었습니다. (수량: ' + qty + ')');
-            // TODO: 실제 카트 API 호출
+            const addButton = document.querySelector('.btn-cart');
+            
+            if (parseInt(qty) <= 0) {
+                alert('수량을 1개 이상 선택해주세요.');
+                return;
+            }
+            
+            // 버튼 비활성화 및 로딩 상태
+            addButton.disabled = true;
+            addButton.textContent = '추가 중...';
+            
+            try {
+                const response = await fetch('/api/cart/add', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/x-www-form-urlencoded'
+                    },
+                    body: 'bookId=' + bookId + '&quantity=' + qty
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    alert('장바구니에 상품이 추가되었습니다. (수량: ' + qty + '개)');
+                } else {
+                    alert('장바구니 추가에 실패했습니다: ' + data.message);
+                }
+            } catch (error) {
+                console.error('장바구니 추가 오류:', error);
+                alert('장바구니 추가 중 오류가 발생했습니다.');
+            } finally {
+                // 버튼 상태 복원
+                addButton.disabled = false;
+                addButton.textContent = '카트에 넣기';
+            }
         }
         
         // 바로 구매

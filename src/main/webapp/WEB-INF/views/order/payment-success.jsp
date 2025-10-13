@@ -212,7 +212,7 @@
             </div>
             
             <div class="button-group">
-                <a href="/order/list" class="btn btn-primary">주문 내역 보기</a>
+                <a href="/order/history" class="btn btn-primary" onclick="goToOrderHistory()">주문 내역 보기</a>
                 <a href="/" class="btn btn-outline">쇼핑 계속하기</a>
             </div>
         </div>
@@ -254,20 +254,38 @@
                 memo: memo
             });
             
-            fetch('/api/order/payment-success', {
+            // URL 파라미터에서 bookId와 quantity 확인 (직접 구매인지 판단)
+            const urlParams = new URLSearchParams(window.location.search);
+            const bookId = urlParams.get('bookId');
+            const quantity = urlParams.get('quantity');
+            
+            // API 엔드포인트 결정
+            const apiEndpoint = (bookId && quantity) ? '/api/order/direct-payment-success' : '/api/order/payment-success';
+            console.log('API 엔드포인트:', apiEndpoint, 'bookId:', bookId, 'quantity:', quantity);
+            
+            // 요청 데이터 구성
+            const requestData = {
+                orderId: orderId,
+                paymentKey: paymentKey,
+                amount: amount,
+                recipientName: recipientName,
+                recipientPhone: recipientPhone,
+                deliveryAddress: deliveryAddress,
+                memo: memo
+            };
+            
+            // 직접 구매인 경우 bookId와 quantity 추가
+            if (bookId && quantity) {
+                requestData.bookId = parseInt(bookId);
+                requestData.quantity = parseInt(quantity);
+            }
+            
+            fetch(apiEndpoint, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json'
                 },
-                body: JSON.stringify({
-                    orderId: orderId,
-                    paymentKey: paymentKey,
-                    amount: amount,
-                    recipientName: recipientName,
-                    recipientPhone: recipientPhone,
-                    deliveryAddress: deliveryAddress,
-                    memo: memo
-                })
+                body: JSON.stringify(requestData)
             })
             .then(response => response.json())
             .then(data => {
@@ -287,6 +305,12 @@
                 console.error('결제 처리 요청 실패:', error);
                 alert('결제 처리 중 오류가 발생했습니다.');
             });
+        }
+        
+        // 주문 내역 페이지로 이동 (캐싱 방지)
+        function goToOrderHistory() {
+            // 캐시를 무시하고 강제로 새로고침
+            window.location.href = '/order/history?t=' + new Date().getTime();
         }
     </script>
 </body>
