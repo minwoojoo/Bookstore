@@ -1,6 +1,7 @@
 package com.bookstore.bookstore.security;
 
 import com.bookstore.bookstore.entity.customer.Member;
+import com.bookstore.bookstore.entity.customer.Admin;
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.core.GrantedAuthority;
@@ -15,10 +16,25 @@ import java.util.Collections;
  * 인증된 사용자 정보를 담는 객체
  */
 @Getter
-@RequiredArgsConstructor
 public class CustomUserDetails implements UserDetails {
     
     private final Member member;
+    private final Admin admin;
+    private final boolean isAdmin;
+    
+    // Member용 생성자
+    public CustomUserDetails(Member member) {
+        this.member = member;
+        this.admin = null;
+        this.isAdmin = false;
+    }
+    
+    // Admin용 생성자
+    public CustomUserDetails(Admin admin) {
+        this.member = null;
+        this.admin = admin;
+        this.isAdmin = true;
+    }
     
     /**
      * 사용자의 권한 목록 반환
@@ -26,11 +42,17 @@ public class CustomUserDetails implements UserDetails {
      */
     @Override
     public Collection<? extends GrantedAuthority> getAuthorities() {
-        // Member의 memberGrade를 권한으로 변환
-        // "BRONZE" -> "ROLE_USER"
-        return Collections.singletonList(
-            new SimpleGrantedAuthority("ROLE_USER")
-        );
+        if (isAdmin) {
+            // Admin의 role을 권한으로 변환
+            return Collections.singletonList(
+                new SimpleGrantedAuthority("ROLE_" + admin.getRole())
+            );
+        } else {
+            // Member의 memberGrade를 권한으로 변환
+            return Collections.singletonList(
+                new SimpleGrantedAuthority("ROLE_USER")
+            );
+        }
     }
     
     /**
@@ -38,7 +60,7 @@ public class CustomUserDetails implements UserDetails {
      */
     @Override
     public String getPassword() {
-        return member.getPassword();
+        return isAdmin ? admin.getPassword() : member.getPassword();
     }
     
     /**
@@ -46,7 +68,7 @@ public class CustomUserDetails implements UserDetails {
      */
     @Override
     public String getUsername() {
-        return member.getUserId();
+        return isAdmin ? admin.getLoginId() : member.getUserId();
     }
     
     /**
@@ -82,8 +104,13 @@ public class CustomUserDetails implements UserDetails {
      */
     @Override
     public boolean isEnabled() {
-        // Member의 status 필드 확인
-        return "ACTIVE".equals(member.getStatus());
+        if (isAdmin) {
+            // Admin의 isActive 필드 확인
+            return admin.getIsActive();
+        } else {
+            // Member의 status 필드 확인
+            return "ACTIVE".equals(member.getStatus());
+        }
     }
     
     /**
@@ -94,16 +121,37 @@ public class CustomUserDetails implements UserDetails {
     }
     
     /**
-     * Member ID 반환
+     * Admin 엔티티 반환 (비즈니스 로직에서 사용)
      */
-    public Long getMemberId() {
-        return member.getMemberId();
+    public Admin getAdmin() {
+        return admin;
     }
     
     /**
-     * Member 이름 반환
+     * Member ID 반환 (Admin의 경우 null)
+     */
+    public Long getMemberId() {
+        return isAdmin ? null : member.getMemberId();
+    }
+    
+    /**
+     * Admin ID 반환 (Member의 경우 null)
+     */
+    public Long getAdminId() {
+        return isAdmin ? admin.getAdminId() : null;
+    }
+    
+    /**
+     * 사용자 이름 반환
      */
     public String getName() {
-        return member.getName();
+        return isAdmin ? admin.getName() : member.getName();
+    }
+    
+    /**
+     * 사용자 역할 반환
+     */
+    public String getRole() {
+        return isAdmin ? admin.getRole() : "USER";
     }
 }

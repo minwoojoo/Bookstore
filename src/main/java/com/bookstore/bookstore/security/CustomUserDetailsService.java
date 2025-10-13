@@ -1,7 +1,9 @@
 package com.bookstore.bookstore.security;
 
 import com.bookstore.bookstore.entity.customer.Member;
+import com.bookstore.bookstore.entity.customer.Admin;
 import com.bookstore.bookstore.repository.customer.MemberRepository;
+import com.bookstore.bookstore.repository.admin.AdminRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.security.core.userdetails.UserDetails;
@@ -20,6 +22,7 @@ import org.springframework.transaction.annotation.Transactional;
 public class CustomUserDetailsService implements UserDetailsService {
     
     private final MemberRepository memberRepository;
+    private final AdminRepository adminRepository;
     
     /**
      * 사용자 ID로 사용자 정보를 조회
@@ -34,7 +37,14 @@ public class CustomUserDetailsService implements UserDetailsService {
     public UserDetails loadUserByUsername(String userId) throws UsernameNotFoundException {
         log.info("로그인 시도: userId = {}", userId);
         
-        // 데이터베이스에서 사용자 조회
+        // 먼저 관리자 계정인지 확인
+        Admin admin = adminRepository.findByLoginIdAndIsActiveTrue(userId).orElse(null);
+        if (admin != null) {
+            log.info("관리자 로그인 성공: loginId = {}, name = {}", userId, admin.getName());
+            return new CustomUserDetails(admin);
+        }
+        
+        // 일반 회원 계정 조회
         Member member = memberRepository.findByUserId(userId)
             .orElseThrow(() -> {
                 log.warn("사용자를 찾을 수 없음: userId = {}", userId);
@@ -47,7 +57,7 @@ public class CustomUserDetailsService implements UserDetailsService {
             throw new UsernameNotFoundException("비활성화된 계정입니다: " + userId);
         }
         
-        log.info("사용자 조회 성공: userId = {}, name = {}", userId, member.getName());
+        log.info("회원 로그인 성공: userId = {}, name = {}", userId, member.getName());
         
         // CustomUserDetails로 감싸서 반환
         return new CustomUserDetails(member);

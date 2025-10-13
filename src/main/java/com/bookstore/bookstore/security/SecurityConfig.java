@@ -58,25 +58,23 @@ public class SecurityConfig {
                     "/auth/login",            // 로그인 페이지
                     "/auth/signup",           // 회원가입 페이지
                     "/auth/find-password",    // 비밀번호 찾기
-                    "/books/**",              // 도서 목록, 상세, 카테고리, 검색 (로그인 불필요)
-                    "/api/**"                 // API 엔드포인트
+                    "/books/**"               // 도서 목록, 상세, 카테고리, 검색 (로그인 불필요)
                 ).permitAll()
                 
                 // 인증 없이 접근 가능한 API
-                    .requestMatchers(
-                        "/api/auth/signup",
-                        "/api/auth/check",
-                        "/api/auth/check-userid",
-                        "/api/auth/check-email",
-                        "/api/auth/send-verification",
-                        "/api/auth/verify-email",
-                        "/api/auth/send-password-reset",
-                        "/api/auth/verify-password-reset",
-                        "/api/auth/reset-password",
-                        "/api/books/**",
-                        "/api/categories/**"
-                    ).permitAll()
-                
+                .requestMatchers(
+                    "/api/auth/signup",
+                    "/api/auth/check",
+                    "/api/auth/check-userid",
+                    "/api/auth/check-email",
+                    "/api/auth/send-verification",
+                    "/api/auth/verify-email",
+                    "/api/auth/send-password-reset",
+                    "/api/auth/verify-password-reset",
+                    "/api/auth/reset-password",
+                    "/api/books/**",
+                    "/api/categories/**"
+                ).permitAll()
                 
                 // 관리자 전용 페이지/API (인증 + ADMIN 역할 필요)
                 .requestMatchers(
