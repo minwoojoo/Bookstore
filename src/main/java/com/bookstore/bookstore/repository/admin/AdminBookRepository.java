@@ -10,8 +10,9 @@ import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
 import java.util.Optional;
-
+import java.util.List;
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 
 /**
  * 관리자 상품 관리 리포지토리
@@ -33,8 +34,8 @@ public interface AdminBookRepository extends JpaRepository<Book, Long> {
            "AND (:minStock IS NULL OR (b.stock IS NOT NULL AND b.stock.quantity >= :minStock)) " +
            "AND (:maxStock IS NULL OR (b.stock IS NOT NULL AND b.stock.quantity <= :maxStock)) " +
            "AND (:saleStatus IS NULL OR b.bookStatus = :saleStatus) " +
-           "AND (:startDate IS NULL OR DATE(b.registrationDate) >= :startDate) " +
-           "AND (:endDate IS NULL OR DATE(b.registrationDate) <= :endDate)")
+           "AND (:startDate IS NULL OR b.registrationDate >= :startDate) " +
+           "AND (:endDate IS NULL OR b.registrationDate <= :endDate)")
     Page<Book> findBooksWithFilters(
             @Param("bookTitle") String bookTitle,
             @Param("publisher") String publisher,
@@ -42,14 +43,20 @@ public interface AdminBookRepository extends JpaRepository<Book, Long> {
             @Param("minStock") Integer minStock,
             @Param("maxStock") Integer maxStock,
             @Param("saleStatus") String saleStatus,
-            @Param("startDate") LocalDate startDate,
-            @Param("endDate") LocalDate endDate,
+            @Param("startDate") LocalDateTime startDate,
+            @Param("endDate") LocalDateTime endDate,
             Pageable pageable);
     
     /**
      * AdminBookListRequest를 사용한 상품 목록 조회
      */
     default Page<Book> findBooksWithFilters(AdminBookListRequest request, Pageable pageable) {
+        // LocalDate를 LocalDateTime으로 변환
+        LocalDateTime startDate = request.getStartDate() != null ? 
+            request.getStartDate().atStartOfDay() : null;
+        LocalDateTime endDate = request.getEndDate() != null ? 
+            request.getEndDate().plusDays(1).atStartOfDay() : null;
+            
         return findBooksWithFilters(
                 request.getBookTitle(),
                 request.getPublisher(),
@@ -57,8 +64,8 @@ public interface AdminBookRepository extends JpaRepository<Book, Long> {
                 request.getMinStock(),
                 request.getMaxStock(),
                 request.getSaleStatus(),
-                request.getStartDate(),
-                request.getEndDate(),
+                startDate,
+                endDate,
                 pageable
         );
     }
@@ -94,5 +101,26 @@ public interface AdminBookRepository extends JpaRepository<Book, Long> {
            "WHERE b.registrationDate >= :startDate " +
            "GROUP BY FUNCTION('YEAR', b.registrationDate), FUNCTION('MONTH', b.registrationDate) " +
            "ORDER BY FUNCTION('YEAR', b.registrationDate), FUNCTION('MONTH', b.registrationDate)")
-    Object[][] countByMonth(@Param("startDate") LocalDate startDate);
+    Object[][] countByMonth(@Param("startDate") LocalDateTime startDate);
+    
+    /**
+     * 특정 판매 상태의 도서 수 조회
+     */
+    @Query("SELECT COUNT(b) FROM Book b WHERE b.bookStatus = :status")
+    Long countByBookStatus(@Param("status") String status);
+    
+    /**
+     * 재고 부족 도서 수 조회 (지정된 수량 이하)
+     */
+    @Query("SELECT COUNT(b) FROM Book b WHERE b.stock IS NOT NULL AND b.stock.quantity <= :quantity")
+    Long countLowStockBooks(@Param("quantity") Integer quantity);
+    
+    /**
+     * 재고 부족 도서 조회 (지정된 수량 이하, 최대 개수)
+     */
+    @Query("SELECT b FROM Book b " +
+           "LEFT JOIN FETCH b.stock s " +
+           "WHERE s IS NOT NULL AND s.quantity <= :quantity " +
+           "ORDER BY s.quantity ASC")
+    List<Book> findLowStockBooks(@Param("quantity") Integer quantity, @Param("limit") int limit);
 }

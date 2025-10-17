@@ -4,6 +4,7 @@ import lombok.Data;
 import lombok.Builder;
 import lombok.NoArgsConstructor;
 import lombok.AllArgsConstructor;
+import lombok.Builder.Default;
 
 import java.time.LocalDate;
 
@@ -17,7 +18,9 @@ import java.time.LocalDate;
 public class AdminOrderListRequest {
     
     // 페이징
+    @Builder.Default
     private int page = 0;
+    @Builder.Default
     private int size = 30;
     
     // 검색 조건
@@ -31,7 +34,9 @@ public class AdminOrderListRequest {
     private Long memberId;              // 회원 ID (회원별 주문 조회용)
     
     // 정렬 조건
+    @Builder.Default
     private String sortBy = "orderDate"; // 정렬 기준 (orderDate, memberId, totalAmount, orderStatus)
+    @Builder.Default
     private String sortDirection = "desc"; // 정렬 방향 (asc, desc)
     
     /**

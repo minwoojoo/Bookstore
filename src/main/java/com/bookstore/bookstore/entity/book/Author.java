@@ -2,6 +2,7 @@ package com.bookstore.bookstore.entity.book;
 
 import jakarta.persistence.*;
 import lombok.*;
+import com.fasterxml.jackson.annotation.JsonIgnore;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -29,6 +30,7 @@ public class Author {
     // 저자가 집필한 책들 (중간 테이블을 통한 관계)
     @OneToMany(mappedBy = "author")
     @Builder.Default
+    @JsonIgnore
     private List<BookAuthor> bookAuthors = new ArrayList<>();
 }
 

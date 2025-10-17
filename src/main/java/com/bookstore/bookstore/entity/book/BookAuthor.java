@@ -2,6 +2,7 @@ package com.bookstore.bookstore.entity.book;
 
 import jakarta.persistence.*;
 import lombok.*;
+import com.fasterxml.jackson.annotation.JsonIgnore;
 
 @Entity
 @Table(name = "book_author")
@@ -27,6 +28,7 @@ public class BookAuthor {
     // 책과의 관계
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "book_id", insertable = false, updatable = false)
+    @JsonIgnore
     private Book book;
     
     // 저자와의 관계

@@ -9,6 +9,8 @@ import com.bookstore.bookstore.dto.admin.AdminMemberListResponse;
 import com.bookstore.bookstore.dto.admin.AdminBookDetailResponse;
 import com.bookstore.bookstore.dto.admin.AdminOrderDetailResponse;
 import com.bookstore.bookstore.dto.admin.AdminMemberDetailResponse;
+import com.bookstore.bookstore.dto.admin.AdminDashboardStatsResponse;
+import com.bookstore.bookstore.dto.admin.AdminRecentActivityResponse;
 import com.bookstore.bookstore.service.admin.AdminService;
 import com.bookstore.bookstore.security.CustomUserDetails;
 import lombok.RequiredArgsConstructor;
@@ -37,13 +39,27 @@ public class AdminController {
      */
     @GetMapping
     public String adminMain(@AuthenticationPrincipal CustomUserDetails userDetails, Model model) {
-        if (userDetails == null || !"ADMIN".equals(userDetails.getRole())) {
+        if (userDetails == null) {
+            // 로그인하지 않은 사용자
             return "redirect:/auth/login";
         }
+        
+        if (!"ADMIN".equals(userDetails.getRole())) {
+            // 일반 사용자가 관리자 페이지에 접근한 경우
+            model.addAttribute("errorMessage", "허용되지 않은 사용자입니다.");
+            model.addAttribute("showAlert", true);
+            return "redirect:/?error=unauthorized";
+        }
+        
+        // 대시보드 통계 데이터 조회
+        AdminDashboardStatsResponse stats = adminService.getDashboardStats();
+        List<AdminRecentActivityResponse> recentActivities = adminService.getRecentActivities();
         
         model.addAttribute("isAuthenticated", true);
         model.addAttribute("userName", userDetails.getName());
         model.addAttribute("isAdmin", true);
+        model.addAttribute("stats", stats);
+        model.addAttribute("recentActivities", recentActivities);
         
         return "admin/main";
     }

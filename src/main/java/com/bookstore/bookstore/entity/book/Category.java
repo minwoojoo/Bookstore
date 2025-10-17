@@ -2,6 +2,7 @@ package com.bookstore.bookstore.entity.book;
 
 import jakarta.persistence.*;
 import lombok.*;
+import com.fasterxml.jackson.annotation.JsonIgnore;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -34,6 +35,7 @@ public class Category {
     // 하위 카테고리 리스트
     @OneToMany(mappedBy = "parent", cascade = CascadeType.ALL)
     @Builder.Default
+    @JsonIgnore  // JSON 직렬화 시 순환 참조 방지
     private List<Category> children = new ArrayList<>();
     
     // 해당 카테고리에 속한 책들

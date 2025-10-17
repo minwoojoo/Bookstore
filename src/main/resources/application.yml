@@ -57,6 +57,8 @@ logging:
   level:
     org.hibernate.SQL: debug
     org.hibernate.type.descriptor.sql.BasicBinder: trace
+    org.hibernate.stat: debug
+    com.bookstore.bookstore.controller.PerformanceTestController: info
     
 # 서버 포트 및 인코딩 설정
 server:

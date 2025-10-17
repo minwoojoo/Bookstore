@@ -4,6 +4,7 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
+import lombok.Builder.Default;
 
 import java.time.LocalDate;
 
@@ -17,7 +18,9 @@ import java.time.LocalDate;
 public class AdminBookListRequest {
     
     // 페이징
+    @Builder.Default
     private int page = 0;
+    @Builder.Default
     private int size = 30;
     
     // 검색 조건
@@ -31,7 +34,9 @@ public class AdminBookListRequest {
     private LocalDate endDate;          // 등록일 종료
     
     // 정렬 조건
+    @Builder.Default
     private String sortBy = "bookId";   // 정렬 기준 (bookTitle, price, createdAt)
+    @Builder.Default
     private String sortDirection = "desc"; // 정렬 방향 (asc, desc)
     
     /**

@@ -149,7 +149,7 @@
                                             <i class="fas fa-book"></i>
                                         </div>
                                         <div class="ms-3">
-                                            <div class="stat-number">1,234</div>
+                                            <div class="stat-number"><fmt:formatNumber value="${stats.totalBooks}" pattern="#,###"/></div>
                                             <div class="stat-label">총 상품 수</div>
                                         </div>
                                     </div>
@@ -162,7 +162,7 @@
                                             <i class="fas fa-shopping-cart"></i>
                                         </div>
                                         <div class="ms-3">
-                                            <div class="stat-number">567</div>
+                                            <div class="stat-number"><fmt:formatNumber value="${stats.totalOrders}" pattern="#,###"/></div>
                                             <div class="stat-label">총 주문 수</div>
                                         </div>
                                     </div>
@@ -175,7 +175,7 @@
                                             <i class="fas fa-users"></i>
                                         </div>
                                         <div class="ms-3">
-                                            <div class="stat-number">89</div>
+                                            <div class="stat-number"><fmt:formatNumber value="${stats.totalMembers}" pattern="#,###"/></div>
                                             <div class="stat-label">총 회원 수</div>
                                         </div>
                                     </div>
@@ -188,8 +188,64 @@
                                             <i class="fas fa-won-sign"></i>
                                         </div>
                                         <div class="ms-3">
-                                            <div class="stat-number">₩12.3M</div>
+                                            <div class="stat-number">₩<fmt:formatNumber value="${stats.totalSales}" pattern="#,###"/></div>
                                             <div class="stat-label">총 매출</div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- 추가 통계 카드 -->
+                        <div class="row mb-4">
+                            <div class="col-md-3 mb-3">
+                                <div class="stat-card">
+                                    <div class="d-flex align-items-center">
+                                        <div class="stat-icon" style="background: linear-gradient(45deg, #ff9a9e, #fecfef);">
+                                            <i class="fas fa-shopping-bag"></i>
+                                        </div>
+                                        <div class="ms-3">
+                                            <div class="stat-number"><fmt:formatNumber value="${stats.todayOrders}" pattern="#,###"/></div>
+                                            <div class="stat-label">오늘 주문 수</div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-3 mb-3">
+                                <div class="stat-card">
+                                    <div class="d-flex align-items-center">
+                                        <div class="stat-icon" style="background: linear-gradient(45deg, #a8edea, #fed6e3);">
+                                            <i class="fas fa-won-sign"></i>
+                                        </div>
+                                        <div class="ms-3">
+                                            <div class="stat-number">₩<fmt:formatNumber value="${stats.todaySales}" pattern="#,###"/></div>
+                                            <div class="stat-label">오늘 매출</div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-3 mb-3">
+                                <div class="stat-card">
+                                    <div class="d-flex align-items-center">
+                                        <div class="stat-icon" style="background: linear-gradient(45deg, #ffecd2, #fcb69f);">
+                                            <i class="fas fa-exclamation-triangle"></i>
+                                        </div>
+                                        <div class="ms-3">
+                                            <div class="stat-number"><fmt:formatNumber value="${stats.lowStockBooks}" pattern="#,###"/></div>
+                                            <div class="stat-label">재고 부족 도서</div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-3 mb-3">
+                                <div class="stat-card">
+                                    <div class="d-flex align-items-center">
+                                        <div class="stat-icon" style="background: linear-gradient(45deg, #d299c2, #fef9d7);">
+                                            <i class="fas fa-user-check"></i>
+                                        </div>
+                                        <div class="ms-3">
+                                            <div class="stat-number"><fmt:formatNumber value="${stats.activeMembers}" pattern="#,###"/></div>
+                                            <div class="stat-label">활성 회원</div>
                                         </div>
                                     </div>
                                 </div>
@@ -227,27 +283,33 @@
                                         최근 활동
                                     </h5>
                                     <div class="list-group list-group-flush">
-                                        <div class="list-group-item d-flex justify-content-between align-items-center">
-                                            <div>
-                                                <small class="text-muted">새로운 주문</small>
-                                                <div>주문 #12345</div>
-                                            </div>
-                                            <small class="text-muted">2분 전</small>
-                                        </div>
-                                        <div class="list-group-item d-flex justify-content-between align-items-center">
-                                            <div>
-                                                <small class="text-muted">새로운 회원</small>
-                                                <div>홍길동님이 가입했습니다</div>
-                                            </div>
-                                            <small class="text-muted">1시간 전</small>
-                                        </div>
-                                        <div class="list-group-item d-flex justify-content-between align-items-center">
-                                            <div>
-                                                <small class="text-muted">상품 재고 부족</small>
-                                                <div>자바의 정석 - 5권 남음</div>
-                                            </div>
-                                            <small class="text-muted">3시간 전</small>
-                                        </div>
+                                        <c:choose>
+                                            <c:when test="${not empty recentActivities}">
+                                                <c:forEach var="activity" items="${recentActivities}">
+                                                    <div class="list-group-item d-flex justify-content-between align-items-center">
+                                                        <div>
+                                                            <small class="text-muted">
+                                                                <c:choose>
+                                                                    <c:when test="${activity.activityType == 'ORDER'}">새로운 주문</c:when>
+                                                                    <c:when test="${activity.activityType == 'MEMBER'}">새로운 회원</c:when>
+                                                                    <c:when test="${activity.activityType == 'STOCK'}">상품 재고 부족</c:when>
+                                                                    <c:otherwise>알림</c:otherwise>
+                                                                </c:choose>
+                                                            </small>
+                                                            <div>${activity.message}</div>
+                                                        </div>
+                                                        <small class="text-muted">
+                                                            ${activity.activityTime.monthValue < 10 ? '0' : ''}${activity.activityTime.monthValue}/${activity.activityTime.dayOfMonth < 10 ? '0' : ''}${activity.activityTime.dayOfMonth} ${activity.activityTime.hour < 10 ? '0' : ''}${activity.activityTime.hour}:${activity.activityTime.minute < 10 ? '0' : ''}${activity.activityTime.minute}
+                                                        </small>
+                                                    </div>
+                                                </c:forEach>
+                                            </c:when>
+                                            <c:otherwise>
+                                                <div class="list-group-item text-center text-muted">
+                                                    최근 활동이 없습니다
+                                                </div>
+                                            </c:otherwise>
+                                        </c:choose>
                                     </div>
                                 </div>
                             </div>

@@ -7,6 +7,7 @@ import com.bookstore.bookstore.entity.order.OrderItem;
 import com.bookstore.bookstore.entity.review.Review;
 import jakarta.persistence.*;
 import lombok.*;
+import com.fasterxml.jackson.annotation.JsonIgnore;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
@@ -102,21 +103,25 @@ public class Book {
     // 리뷰와의 관계
     @OneToMany(mappedBy = "book")
     @Builder.Default
+    @JsonIgnore
     private List<Review> reviews = new ArrayList<>();
     
     // 장바구니 아이템과의 관계
     @OneToMany(mappedBy = "book")
     @Builder.Default
+    @JsonIgnore
     private List<CartItem> cartItems = new ArrayList<>();
     
     // 주문 아이템과의 관계 (ERD 설계에 따라 book_id로 참조)
     @OneToMany(mappedBy = "book")
     @Builder.Default
+    @JsonIgnore
     private List<OrderItem> orderItems = new ArrayList<>();
     
     // 접속 로그와의 관계 (이 책이 조회된 기록)
     @OneToMany(mappedBy = "book")
     @Builder.Default
+    @JsonIgnore
     private List<AccessLog> accessLogs = new ArrayList<>();
     
     @PrePersist

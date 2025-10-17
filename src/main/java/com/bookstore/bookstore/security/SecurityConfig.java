@@ -73,7 +73,8 @@ public class SecurityConfig {
                     "/api/auth/verify-password-reset",
                     "/api/auth/reset-password",
                     "/api/books/**",
-                    "/api/categories/**"
+                    "/api/categories/**",
+                    "/api/performance/**"  // 성능 테스트 API (인증 불필요)
                 ).permitAll()
                 
                 // 관리자 전용 페이지/API (인증 + ADMIN 역할 필요)

@@ -18,7 +18,9 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
+import java.time.LocalDate;
 import java.util.List;
+import java.util.ArrayList;
 import java.util.stream.Collectors;
 
 /**
@@ -35,6 +37,120 @@ public class AdminService {
     private final AdminMemberRepository adminMemberRepository;
     
     /**
+     * 관리자 대시보드 통계 조회
+     */
+    public AdminDashboardStatsResponse getDashboardStats() {
+        log.info("관리자 대시보드 통계 조회");
+        
+        LocalDate today = LocalDate.now();
+        LocalDate monthStart = today.withDayOfMonth(1);
+        
+        // 기본 통계
+        Long totalBooks = adminBookRepository.count();
+        Long totalOrders = adminOrderRepository.count();
+        Long totalMembers = adminMemberRepository.count();
+        
+        // 총 매출액 조회
+        BigDecimal totalSales = adminOrderRepository.getTotalSales();
+        if (totalSales == null) {
+            totalSales = BigDecimal.ZERO;
+        }
+        
+        // 오늘 통계
+        LocalDateTime todayStart = today.atStartOfDay();
+        LocalDateTime todayEnd = today.plusDays(1).atStartOfDay();
+        Long todayOrders = adminOrderRepository.countByOrderDate(todayStart, todayEnd);
+        BigDecimal todaySales = adminOrderRepository.getSalesByDate(todayStart, todayEnd);
+        if (todaySales == null) {
+            todaySales = BigDecimal.ZERO;
+        }
+        
+        // 이번 달 통계
+        LocalDateTime monthStartDateTime = monthStart.atStartOfDay();
+        LocalDateTime todayEndDateTime = today.plusDays(1).atStartOfDay();
+        Long monthlyOrders = adminOrderRepository.countByOrderDateBetween(monthStartDateTime, todayEndDateTime);
+        BigDecimal monthlySales = adminOrderRepository.getSalesByDateBetween(monthStartDateTime, todayEndDateTime);
+        if (monthlySales == null) {
+            monthlySales = BigDecimal.ZERO;
+        }
+        
+        // 판매중인 도서 수
+        Long activeBooks = adminBookRepository.countByBookStatus("판매중");
+        
+        // 재고 부족 도서 수 (재고 10개 이하)
+        Long lowStockBooks = adminBookRepository.countLowStockBooks(10);
+        
+        // 활성 회원 수 (최근 30일 내 활동)
+        LocalDateTime thirtyDaysAgo = today.minusDays(30).atStartOfDay();
+        Long activeMembers = adminMemberRepository.countActiveMembers(thirtyDaysAgo);
+        
+        return AdminDashboardStatsResponse.builder()
+                .totalBooks(totalBooks)
+                .totalOrders(totalOrders)
+                .totalMembers(totalMembers)
+                .totalSales(totalSales)
+                .todayOrders(todayOrders)
+                .todaySales(todaySales)
+                .monthlyOrders(monthlyOrders)
+                .monthlySales(monthlySales)
+                .activeBooks(activeBooks)
+                .lowStockBooks(lowStockBooks)
+                .activeMembers(activeMembers)
+                .build();
+    }
+    
+    /**
+     * 최근 활동 조회
+     */
+    public List<AdminRecentActivityResponse> getRecentActivities() {
+        log.info("최근 활동 조회");
+        
+        List<AdminRecentActivityResponse> activities = new ArrayList<>();
+        
+        // 최근 주문 (최근 5개)
+        List<Order> recentOrders = adminOrderRepository.findTop5ByOrderByOrderDateDesc();
+        for (Order order : recentOrders) {
+            activities.add(AdminRecentActivityResponse.builder()
+                    .activityType("ORDER")
+                    .message("새로운 주문 #" + order.getOrderId())
+                    .activityTime(order.getOrderDate())
+                    .relatedId(order.getOrderId())
+                    .priority(1)
+                    .build());
+        }
+        
+        // 최근 회원 가입 (최근 3개)
+        List<Member> recentMembers = adminMemberRepository.findTop3ByOrderByRegistrationDateDesc();
+        for (Member member : recentMembers) {
+            activities.add(AdminRecentActivityResponse.builder()
+                    .activityType("MEMBER")
+                    .message(member.getName() + "님이 가입했습니다")
+                    .activityTime(member.getRegistrationDate())
+                    .relatedId(member.getMemberId())
+                    .priority(2)
+                    .build());
+        }
+        
+        // 재고 부족 도서 (최근 2개)
+        List<Book> lowStockBooks = adminBookRepository.findLowStockBooks(10, 2);
+        for (Book book : lowStockBooks) {
+            activities.add(AdminRecentActivityResponse.builder()
+                    .activityType("STOCK")
+                    .message(book.getTitle() + " - " + book.getStock().getQuantity() + "권 남음")
+                    .activityTime(book.getLastSalesUpdate() != null ? book.getLastSalesUpdate() : book.getRegistrationDate())
+                    .relatedId(book.getBookId())
+                    .priority(3)
+                    .build());
+        }
+        
+        // 시간순으로 정렬하여 최근 5개만 반환
+        return activities.stream()
+                .sorted((a, b) -> b.getActivityTime().compareTo(a.getActivityTime()))
+                .limit(5)
+                .collect(Collectors.toList());
+    }
+    
+    /**
      * 상품 목록 조회
      */
     public Page<AdminBookListResponse> getBookList(AdminBookListRequest request) {
@@ -49,7 +165,7 @@ public class AdminService {
         // 페이징 설정
         Pageable pageable = PageRequest.of(request.getPage(), request.getSize(), sort);
         
-        // 상품 목록 조회
+        // 상품 목록 조회 (Repository에서 LocalDate -> LocalDateTime 변환 처리)
         Page<Book> books = adminBookRepository.findBooksWithFilters(request, pageable);
         
         // DTO 변환
@@ -83,8 +199,24 @@ public class AdminService {
         // 페이징 설정
         Pageable pageable = PageRequest.of(request.getPage(), request.getSize(), sort);
         
+        // 날짜 변환 (LocalDate -> LocalDateTime)
+        LocalDateTime startDate = request.getStartDate() != null ? 
+            request.getStartDate().atStartOfDay() : null;
+        LocalDateTime endDate = request.getEndDate() != null ? 
+            request.getEndDate().plusDays(1).atStartOfDay() : null;
+        
         // 주문 목록 조회
-        Page<Order> orders = adminOrderRepository.findOrdersWithFilters(request, pageable);
+        Page<Order> orders = adminOrderRepository.findOrdersWithFilters(
+            request.getOrdererName(),
+            request.getBookTitle(),
+            request.getPublisher(),
+            request.getAuthor(),
+            request.getSaleStatus(),
+            startDate,
+            endDate,
+            request.getMemberId(),
+            pageable
+        );
         
         // DTO 변환
         return orders.map(this::convertToOrderListResponse);
@@ -134,8 +266,23 @@ public class AdminService {
         // 페이징 설정
         Pageable pageable = PageRequest.of(request.getPage(), request.getSize(), sort);
         
+        // 날짜 변환 (LocalDate -> LocalDateTime)
+        LocalDateTime startDate = request.getStartDate() != null ? 
+            request.getStartDate().atStartOfDay() : null;
+        LocalDateTime endDate = request.getEndDate() != null ? 
+            request.getEndDate().plusDays(1).atStartOfDay() : null;
+        
         // 회원 목록 조회
-        Page<Member> members = adminMemberRepository.findMembersWithFilters(request, pageable);
+        Page<Member> members = adminMemberRepository.findMembersWithFilters(
+            request.getMemberId(),
+            request.getMemberStatus(),
+            request.getEmail(),
+            startDate,
+            endDate,
+            request.getMemberGrade(),
+            request.getMemberName(),
+            pageable
+        );
         
         // DTO 변환
         return members.map(this::convertToMemberListResponse);

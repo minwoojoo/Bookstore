@@ -64,7 +64,17 @@ public class HomeController {
      * GET /
      */
     @GetMapping("/")
-    public String home(@AuthenticationPrincipal CustomUserDetails userDetails, Model model) {
+    public String home(
+            @AuthenticationPrincipal CustomUserDetails userDetails, 
+            @RequestParam(value = "error", required = false) String error,
+            Model model) {
+        // 에러 메시지 처리
+        if ("unauthorized".equals(error)) {
+            model.addAttribute("errorMessage", "허용되지 않은 사용자입니다.");
+            model.addAttribute("showAlert", true);
+            log.warn("권한 없는 사용자가 관리자 페이지 접근 시도");
+        }
+        
         if (userDetails != null) {
             // 로그인 상태
             model.addAttribute("isAuthenticated", true);

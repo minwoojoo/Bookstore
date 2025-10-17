@@ -681,6 +681,13 @@
     </div>
     
     <script>
+        // 페이지 로드 시 에러 메시지 확인
+        document.addEventListener('DOMContentLoaded', function() {
+            <c:if test="${showAlert == true}">
+                alert('${errorMessage}');
+            </c:if>
+        });
+        
         // 카테고리 데이터 로드
         const level2Categories = [];
         const categoryElements = document.querySelectorAll('#categoryData span');

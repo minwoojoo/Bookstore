@@ -15,7 +15,6 @@ services:
       - "33006:3306"
     volumes:
       - mysql-data:/var/lib/mysql
-      - ./init.sql:/docker-entrypoint-initdb.d/init.sql
     networks:
       - bookstore-network
     command: --character-set-server=utf8mb4 --collation-server=utf8mb4_unicode_ci
