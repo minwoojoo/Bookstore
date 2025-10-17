@@ -33,13 +33,13 @@
                                 <span class="info-label">주문상태</span>
                                 <span class="order-status ${order.orderStatus == 'PENDING' ? 'status-pending' : 
                                                            order.orderStatus == 'CONFIRMED' ? 'status-confirmed' :
-                                                           order.orderStatus == 'SHIPPED' ? 'status-shipped' :
+                                                           order.orderStatus == 'SHIPPING' ? 'status-shipped' :
                                                            order.orderStatus == 'DELIVERED' ? 'status-delivered' :
                                                            order.orderStatus == 'CANCELLED' ? 'status-cancelled' : 'status-pending'}">
                                     <c:choose>
                                         <c:when test="${order.orderStatus == 'PENDING'}">결제대기</c:when>
                                         <c:when test="${order.orderStatus == 'CONFIRMED'}">결제완료</c:when>
-                                        <c:when test="${order.orderStatus == 'SHIPPED'}">배송중</c:when>
+                                        <c:when test="${order.orderStatus == 'SHIPPING'}">배송중</c:when>
                                         <c:when test="${order.orderStatus == 'DELIVERED'}">배송완료</c:when>
                                         <c:when test="${order.orderStatus == 'CANCELLED'}">주문취소</c:when>
                                         <c:otherwise>결제대기</c:otherwise>

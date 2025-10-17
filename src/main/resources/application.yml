@@ -33,9 +33,9 @@ spring:
     properties:
       hibernate:
         dialect: org.hibernate.dialect.MySQLDialect
-        format_sql: true  # SQL 포맷팅
-        show_sql: true    # SQL 로그 출력
-    show-sql: true
+        format_sql: false  # SQL 포맷팅 비활성화
+        show_sql: false    # SQL 로그 출력 비활성화
+    show-sql: false
   
   # 이메일 발송 설정 (Naver SMTP)
   mail:
@@ -55,9 +55,9 @@ spring:
   # 로깅 설정
 logging:
   level:
-    org.hibernate.SQL: debug
-    org.hibernate.type.descriptor.sql.BasicBinder: trace
-    org.hibernate.stat: debug
+    org.hibernate.SQL: warn
+    org.hibernate.type.descriptor.sql.BasicBinder: warn
+    org.hibernate.stat: warn
     com.bookstore.bookstore.controller.PerformanceTestController: info
     
 # 서버 포트 및 인코딩 설정

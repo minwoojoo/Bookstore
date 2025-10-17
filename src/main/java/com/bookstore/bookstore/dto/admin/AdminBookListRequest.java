@@ -49,7 +49,7 @@ public class AdminBookListRequest {
             case "price":
                 return "price";
             case "createdAt":
-                return "createdDate";
+                return "registrationDate";
             default:
                 return "bookId";
         }

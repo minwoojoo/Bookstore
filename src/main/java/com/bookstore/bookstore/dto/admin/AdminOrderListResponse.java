@@ -30,8 +30,8 @@ public class AdminOrderListResponse {
     private String recipientPhone;          // 수령인 연락처
     private String deliveryAddress;         // 배송 주소
     private String memo;                    // 배송 메모
-    private LocalDateTime orderDate;        // 주문일
-    private LocalDateTime updatedAt;        // 수정일
+    private String orderDate;        // 주문일 (포맷된 문자열)
+    private String updatedAt;        // 수정일 (포맷된 문자열)
     
     // 주문 아이템 정보
     private List<OrderItemInfo> orderItems;

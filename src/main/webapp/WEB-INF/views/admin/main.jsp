@@ -140,8 +140,28 @@
                     
                     <!-- 대시보드 콘텐츠 -->
                     <div class="p-4">
-                        <!-- 통계 카드 -->
-                        <div class="row mb-4">
+                        <c:choose>
+                            <c:when test="${isUnauthorized == true}">
+                                <!-- 권한 없는 사용자에게 보여줄 메시지 -->
+                                <div class="row justify-content-center">
+                                    <div class="col-md-8">
+                                        <div class="alert alert-warning text-center" role="alert">
+                                            <h4 class="alert-heading">
+                                                <i class="fas fa-exclamation-triangle me-2"></i>
+                                                접근 권한이 없습니다
+                                            </h4>
+                                            <p class="mb-0">이 페이지는 관리자 계정으로만 접근할 수 있습니다.</p>
+                                            <hr>
+                                            <p class="mb-0">
+                                                <a href="/" class="btn btn-primary">메인 페이지로 이동</a>
+                                            </p>
+                                        </div>
+                                    </div>
+                                </div>
+                            </c:when>
+                            <c:otherwise>
+                                <!-- 관리자용 통계 카드 -->
+                                <div class="row mb-4">
                             <div class="col-md-3 mb-3">
                                 <div class="stat-card">
                                     <div class="d-flex align-items-center">
@@ -299,7 +319,7 @@
                                                             <div>${activity.message}</div>
                                                         </div>
                                                         <small class="text-muted">
-                                                            ${activity.activityTime.monthValue < 10 ? '0' : ''}${activity.activityTime.monthValue}/${activity.activityTime.dayOfMonth < 10 ? '0' : ''}${activity.activityTime.dayOfMonth} ${activity.activityTime.hour < 10 ? '0' : ''}${activity.activityTime.hour}:${activity.activityTime.minute < 10 ? '0' : ''}${activity.activityTime.minute}
+                                                            ${activity.activityTime.year}/${activity.activityTime.monthValue < 10 ? '0' : ''}${activity.activityTime.monthValue}/${activity.activityTime.dayOfMonth < 10 ? '0' : ''}${activity.activityTime.dayOfMonth} ${activity.activityTime.hour < 10 ? '0' : ''}${activity.activityTime.hour}:${activity.activityTime.minute < 10 ? '0' : ''}${activity.activityTime.minute}
                                                         </small>
                                                     </div>
                                                 </c:forEach>
@@ -314,6 +334,8 @@
                                 </div>
                             </div>
                         </div>
+                            </c:otherwise>
+                        </c:choose>
                     </div>
                 </div>
             </div>
@@ -321,5 +343,14 @@
     </div>
     
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    
+    <script>
+        // 페이지 로드 시 권한 없음 팝업 표시
+        document.addEventListener('DOMContentLoaded', function() {
+            <c:if test="${showAlert == true}">
+                alert('${errorMessage}');
+            </c:if>
+        });
+    </script>
 </body>
 </html>

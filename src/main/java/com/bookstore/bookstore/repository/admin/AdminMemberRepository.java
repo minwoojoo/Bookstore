@@ -33,7 +33,7 @@ public interface AdminMemberRepository extends JpaRepository<Member, Long> {
            "AND (:memberGrade IS NULL OR m.memberGrade = :memberGrade) " +
            "AND (:memberName IS NULL OR LOWER(m.name) LIKE LOWER(CONCAT('%', :memberName, '%')))")
     Page<Member> findMembersWithFilters(
-            @Param("memberId") String memberId,
+            @Param("memberId") Long memberId,
             @Param("memberStatus") String memberStatus,
             @Param("email") String email,
             @Param("startDate") LocalDateTime startDate,
@@ -51,9 +51,20 @@ public interface AdminMemberRepository extends JpaRepository<Member, Long> {
             request.getStartDate().atStartOfDay() : null;
         LocalDateTime endDate = request.getEndDate() != null ? 
             request.getEndDate().plusDays(1).atStartOfDay() : null;
+        
+        // memberId를 Long으로 변환
+        Long memberId = null;
+        if (request.getMemberId() != null && !request.getMemberId().trim().isEmpty()) {
+            try {
+                memberId = Long.parseLong(request.getMemberId().trim());
+            } catch (NumberFormatException e) {
+                // 잘못된 형식의 memberId는 무시
+                memberId = null;
+            }
+        }
             
         return findMembersWithFilters(
-                request.getMemberId(),
+                memberId,
                 request.getMemberStatus(),
                 request.getEmail(),
                 startDate,
@@ -119,15 +130,49 @@ public interface AdminMemberRepository extends JpaRepository<Member, Long> {
     Object[][] getMemberOrderStats(@Param("startDate") LocalDateTime startDate);
     
     /**
-     * 활성 회원 수 조회 (최근 30일 내 활동)
+     * 활성 회원 수 조회 (ACTIVE 상태인 회원)
      */
-    @Query("SELECT COUNT(DISTINCT m.memberId) FROM Member m " +
-           "LEFT JOIN Order o ON m.memberId = o.memberId " +
-           "WHERE o.orderDate >= :cutoffDate")
+    @Query("SELECT COUNT(m) FROM Member m WHERE m.status = 'ACTIVE'")
     Long countActiveMembers(@Param("cutoffDate") LocalDateTime cutoffDate);
     
     /**
      * 최근 회원 조회 (최대 3개)
      */
     List<Member> findTop3ByOrderByRegistrationDateDesc();
+    
+        /**
+         * 회원의 총 주문 수 조회
+         */
+        @Query("SELECT COUNT(o) FROM Order o WHERE o.member.memberId = :memberId")
+        Long countOrdersByMemberId(@Param("memberId") Long memberId);
+
+        /**
+         * 회원의 총 주문 금액 조회
+         */
+        @Query("SELECT COALESCE(SUM(o.finalPaymentAmount), 0) FROM Order o WHERE o.member.memberId = :memberId")
+        Long getTotalAmountByMemberId(@Param("memberId") Long memberId);
+    
+        /**
+         * 회원의 총 리뷰 수 조회
+         */
+        @Query("SELECT COUNT(r) FROM Review r WHERE r.member.memberId = :memberId")
+        Long countReviewsByMemberId(@Param("memberId") Long memberId);
+
+        /**
+         * 회원의 평균 리뷰 평점 조회
+         */
+        @Query("SELECT COALESCE(AVG(r.rating), 0.0) FROM Review r WHERE r.member.memberId = :memberId")
+        Double getAverageRatingByMemberId(@Param("memberId") Long memberId);
+
+        /**
+         * 회원의 최근 주문일 조회
+         */
+        @Query("SELECT MAX(o.orderDate) FROM Order o WHERE o.member.memberId = :memberId")
+        LocalDateTime getLastOrderDateByMemberId(@Param("memberId") Long memberId);
+
+        /**
+         * 회원의 최근 리뷰 작성일 조회
+         */
+        @Query("SELECT MAX(r.createdDate) FROM Review r WHERE r.member.memberId = :memberId")
+        LocalDateTime getLastReviewDateByMemberId(@Param("memberId") Long memberId);
 }

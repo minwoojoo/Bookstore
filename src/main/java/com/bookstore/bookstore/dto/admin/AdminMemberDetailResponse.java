@@ -23,9 +23,9 @@ public class AdminMemberDetailResponse {
     private String phone;                   // 연락처
     private String memberStatus;            // 회원 상태 (활성, 비활성, 휴면, 탈퇴)
     private String memberGrade;             // 회원 등급
-    private LocalDateTime createdAt;        // 가입일
-    private LocalDateTime lastLoginAt;      // 최종 접속일
-    private LocalDateTime updatedAt;        // 수정일
+    private String createdAt;        // 가입일 (포맷된 문자열)
+    private String lastLoginAt;      // 최종 접속일 (포맷된 문자열)
+    private String updatedAt;        // 수정일 (포맷된 문자열)
     
     // 주소 정보
     private List<AddressInfo> addresses;
@@ -37,8 +37,8 @@ public class AdminMemberDetailResponse {
     private Double averageRating;           // 평균 리뷰 평점
     
     // 최근 활동
-    private LocalDateTime lastOrderDate;    // 최근 주문일
-    private LocalDateTime lastReviewDate;   // 최근 리뷰 작성일
+    private String lastOrderDate;    // 최근 주문일 (포맷된 문자열)
+    private String lastReviewDate;   // 최근 리뷰 작성일 (포맷된 문자열)
     
     @Data
     @Builder

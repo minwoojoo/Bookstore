@@ -24,7 +24,7 @@ public class AdminOrderListRequest {
     private int size = 30;
     
     // 검색 조건
-    private String ordererName;         // 주문자 이름
+    private String memberName;          // 주문자 이름
     private String bookTitle;           // 책 이름
     private String publisher;           // 출판사
     private String author;              // 저자

@@ -47,8 +47,8 @@ public class AdminMemberListRequest {
                 return "memberId";
             case "memberName":
                 return "name";
-            case "createdAt":
-                return "createdDate";
+            case "registrationDate":
+                return "registrationDate";
             default:
                 return "memberId";
         }

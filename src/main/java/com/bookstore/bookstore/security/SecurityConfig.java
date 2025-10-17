@@ -77,9 +77,13 @@ public class SecurityConfig {
                     "/api/performance/**"  // 성능 테스트 API (인증 불필요)
                 ).permitAll()
                 
-                // 관리자 전용 페이지/API (인증 + ADMIN 역할 필요)
+                // 관리자 페이지는 인증만 필요 (권한 체크는 컨트롤러에서 처리)
                 .requestMatchers(
-                    "/admin/**",
+                    "/admin/**"
+                ).authenticated()
+                
+                // 관리자 API는 ADMIN 역할 필요
+                .requestMatchers(
                     "/api/admin/**"
                 ).hasRole("ADMIN")
                 

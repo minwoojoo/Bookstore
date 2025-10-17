@@ -219,7 +219,27 @@ public class BookInitializer implements ApplicationRunner {
                     "(178, '가브리엘 가르시아 마르케스', '현실과 환상이 어우러진 마술적 리얼리즘의 대가.'), " +
                     "(179, 'J. D. 샐린저', '기성세대에 대한 반항과 청춘의 방황을 그린 \\'호밀밭의 파수꾼\\'의 작가.'), " +
                     "(180, '다자이 오사무', '인간의 나약함과 소외를 그리며 무뢰파 문학을 대표하는 일본 작가.'), " +
-                    "(181, '아서 코난 도일', '명탐정 셜록 홈즈를 창조하여 추리 소설의 역사를 바꾼 작가.')");
+                    "(181, '아서 코난 도일', '명탐정 셜록 홈즈를 창조하여 추리 소설의 역사를 바꾼 작가.'), " +
+                    "(201, '엠제이 드마코', '부의 추월차선을 통해 부자들의 사고방식을 알려주는 작가.'), " +
+                    "(202, '필립 코틀러', '마케팅의 아버지로 불리는 현대 마케팅 이론의 대가.'), " +
+                    "(203, '에릭 리스', '린 스타트업 방법론을 통해 창업의 성공 공식을 제시한 혁신가.'), " +
+                    "(204, '스티븐 코비', '성공하는 사람들의 7가지 습관으로 전 세계에 영향을 미친 리더십 전문가.'), " +
+                    "(205, 'W. 찬킴', '블루오션 전략을 통해 경쟁 없는 시장 창조 방법을 제시한 경영학자.'), " +
+                    "(206, '유발 하라리', '사피엔스로 인류의 역사를 새롭게 해석한 이스라엘 역사학자.'), " +
+                    "(207, '설민석', '역사를 쉽고 재미있게 전달하는 대한민국 대표 역사 강사.'), " +
+                    "(208, 'E.H. 카', '역사란 무엇인가로 역사학의 본질을 탐구한 영국 역사학자.'), " +
+                    "(209, '레프 톨스토이', '전쟁과 평화로 러시아 문학의 거장이 된 대문호.'), " +
+                    "(210, '박은봉', '한국사 편지로 어린이들에게 역사를 재미있게 전달하는 작가.'), " +
+                    "(211, '김정운', '심리학의 이해를 통해 현대 심리학의 핵심을 알기 쉽게 설명하는 심리학자.'), " +
+                    "(212, '버트런드 러셀', '철학의 역사를 통해 서양 철학의 흐름을 정리한 영국 철학자.'), " +
+                    "(213, '조지프 캠벨', '신화의 힘을 통해 영웅의 여행을 설명한 신화학자.'), " +
+                    "(214, '클로드 레비스트로스', '인류학의 눈으로 문화와 사회를 분석한 구조주의 인류학자.'), " +
+                    "(215, '티크 낫한', '마음의 평화를 통해 불교 철학을 현대적으로 해석한 선사.'), " +
+                    "(216, '게리 켈러', '원씽을 통해 집중의 힘을 설명하는 성공 전문가.'), " +
+                    "(217, '데일 카네기', '어떻게 원하는 것을 얻는가로 인간관계의 달인이 된 자기계발의 아버지.'), " +
+                    "(218, '캐롤 드웩', '성장 마인드셋을 통해 성공의 심리학을 연구한 스탠포드 심리학자.'), " +
+                    "(219, '헤르미니아 이바라', '커리어 스위치를 통해 중년의 커리어 전환을 연구한 경영학자.'), " +
+                    "(220, '찰스 두히그', '습관의 재발견을 통해 좋은 습관을 만드는 과학적 방법을 제시한 작가.')");
                 
                 log.info("[Init] Author seed SQL executed successfully");
             }
@@ -413,7 +433,27 @@ public class BookInitializer implements ApplicationRunner {
                     "(192, '백 년의 고독', '민음사', 13500, '9788937480535', '한 가문의 흥망성쇠를 통해 본 라틴 아메리카의 역사', 17), " +
                     "(193, '호밀밭의 파수꾼', '민음사', 8100, '9788937460599', '위선적인 세상에 대한 청춘의 저항과 방황', 17), " +
                     "(194, '인간 실격', '민음사', 5400, '9788937461244', '세상과 화해하지 못한 한 남자의 처절한 고백', 17), " +
-                    "(195, '주홍색 연구', '더스토리', 2680, '9791175240438', '셜록 홈즈 시리즈의 첫 번째 장편소설', 19)");
+                    "(195, '주홍색 연구', '더스토리', 2680, '9791175240438', '셜록 홈즈 시리즈의 첫 번째 장편소설', 19), " +
+                    "(201, '부의 추월차선', '토네이도', 17820, '9791158511686', '부자 아빠 가난한 아빠의 저자 로버트 기요사키가 추천한 부의 공식', 12), " +
+                    "(202, '마케팅 4.0', '비즈니스북스', 19800, '9791162540657', '디지털 시대의 마케팅 전략과 고객 경험 혁신', 13), " +
+                    "(203, '린 스타트업', '알에이치코리아(RHK)', 18000, '9788925567796', '창업과 혁신을 위한 린 방법론', 14), " +
+                    "(204, '성공하는 사람들의 7가지 습관', '김영사', 19800, '9788934991206', '스티븐 코비의 시간 관리와 성공 철학', 15), " +
+                    "(205, '블루오션 전략', '김영사', 19800, '9788934991213', '경쟁 없는 시장을 창조하는 혁신적 사고법', 14), " +
+                    "(206, '사피엔스', '김영사', 19800, '9788934991220', '유발 하라리가 들려주는 인류의 역사', 20), " +
+                    "(207, '조선왕조실록', '세계사', 22500, '9788933870641', '조선 500년의 역사를 한눈에 보는 완전판', 21), " +
+                    "(208, '역사란 무엇인가', '을유문화사', 16200, '9788932474438', 'E.H. 카의 역사학 입문서', 22), " +
+                    "(209, '전쟁과 평화', '문학동네', 22500, '9788954655984', '톨스토이의 대작, 나폴레옹 전쟁을 배경으로 한 소설', 23), " +
+                    "(210, '한국사 편지', '푸른역사', 18000, '9791158881234', '어린이와 청소년을 위한 재미있는 한국사', 21), " +
+                    "(211, '심리학의 이해', '시그마프레스', 19800, '9788968661234', '현대 심리학의 주요 이론과 실제', 24), " +
+                    "(212, '철학의 역사', '이학사', 22500, '9788961471234', '고대부터 현대까지 철학사 개론', 25), " +
+                    "(213, '신화의 힘', '웅진지식하우스', 18000, '9791169851234', '조지프 캠벨의 신화와 영웅의 여행', 26), " +
+                    "(214, '인류학의 눈', '한길사', 16200, '9788935651234', '문화와 사회를 이해하는 인류학적 시각', 27), " +
+                    "(215, '마음의 평화', '불광출판사', 14400, '9788958201234', '불교 철학을 통한 마음의 평정', 25), " +
+                    "(216, '원씽', '비즈니스북스', 16200, '9791162540664', '한 가지에 집중하는 힘', 28), " +
+                    "(217, '어떻게 원하는 것을 얻는가', '알에이치코리아(RHK)', 18000, '9788925567802', '인간관계와 소통의 기술', 29), " +
+                    "(218, '성장 마인드셋', '김영사', 16200, '9788934991237', '고정 마인드셋에서 성장 마인드셋으로', 30), " +
+                    "(219, '커리어 스위치', '비즈니스북스', 19800, '9791162540671', '중년의 커리어 전환과 새로운 도전', 31), " +
+                    "(220, '습관의 재발견', '알에이치코리아(RHK)', 16200, '9788925567819', '좋은 습관을 만드는 과학적 방법', 28)");
                 
                 log.info("[Init] Book seed SQL executed successfully");
             }
@@ -600,6 +640,28 @@ public class BookInitializer implements ApplicationRunner {
                 st.executeUpdate("UPDATE book SET registration_date = '2004-05-15', page_count = 191, width = 132, height = 225, thumbnail_url = 'https://image.yes24.com/goods/1387488/XL', isbn = '9788937461033' WHERE book_id = 194");
                 st.executeUpdate("UPDATE book SET registration_date = '2025-09-30', page_count = 244, width = 128, height = 188, thumbnail_url = 'https://image.yes24.com/goods/154932317/XL', isbn = '9791175240537' WHERE book_id = 195");
                 
+                // 새로 추가된 도서들 (201-220) 상세 정보 UPDATE
+                st.executeUpdate("UPDATE book SET registration_date = '2024-01-15', page_count = 320, width = 145, height = 210, thumbnail_url = 'https://image.yes24.com/goods/120000001/XL', isbn = '9791158511686' WHERE book_id = 201");
+                st.executeUpdate("UPDATE book SET registration_date = '2024-02-10', page_count = 280, width = 152, height = 225, thumbnail_url = 'https://image.yes24.com/goods/120000002/XL', isbn = '9791162540657' WHERE book_id = 202");
+                st.executeUpdate("UPDATE book SET registration_date = '2024-03-05', page_count = 256, width = 140, height = 210, thumbnail_url = 'https://image.yes24.com/goods/120000003/XL', isbn = '9788925567796' WHERE book_id = 203");
+                st.executeUpdate("UPDATE book SET registration_date = '2024-04-12', page_count = 384, width = 152, height = 225, thumbnail_url = 'https://image.yes24.com/goods/120000004/XL', isbn = '9788934991206' WHERE book_id = 204");
+                st.executeUpdate("UPDATE book SET registration_date = '2024-05-20', page_count = 240, width = 145, height = 210, thumbnail_url = 'https://image.yes24.com/goods/120000005/XL', isbn = '9788934991213' WHERE book_id = 205");
+                st.executeUpdate("UPDATE book SET registration_date = '2024-06-08', page_count = 512, width = 152, height = 225, thumbnail_url = 'https://image.yes24.com/goods/120000006/XL', isbn = '9788934991220' WHERE book_id = 206");
+                st.executeUpdate("UPDATE book SET registration_date = '2024-07-15', page_count = 600, width = 165, height = 235, thumbnail_url = 'https://image.yes24.com/goods/120000007/XL', isbn = '9788933870641' WHERE book_id = 207");
+                st.executeUpdate("UPDATE book SET registration_date = '2024-08-22', page_count = 200, width = 140, height = 210, thumbnail_url = 'https://image.yes24.com/goods/120000008/XL', isbn = '9788932474438' WHERE book_id = 208");
+                st.executeUpdate("UPDATE book SET registration_date = '2024-09-10', page_count = 1200, width = 152, height = 225, thumbnail_url = 'https://image.yes24.com/goods/120000009/XL', isbn = '9788954655984' WHERE book_id = 209");
+                st.executeUpdate("UPDATE book SET registration_date = '2024-10-05', page_count = 400, width = 145, height = 210, thumbnail_url = 'https://image.yes24.com/goods/120000010/XL', isbn = '9791158881234' WHERE book_id = 210");
+                st.executeUpdate("UPDATE book SET registration_date = '2024-11-12', page_count = 480, width = 152, height = 225, thumbnail_url = 'https://image.yes24.com/goods/120000011/XL', isbn = '9788968661234' WHERE book_id = 211");
+                st.executeUpdate("UPDATE book SET registration_date = '2024-12-01', page_count = 720, width = 152, height = 225, thumbnail_url = 'https://image.yes24.com/goods/120000012/XL', isbn = '9788961471234' WHERE book_id = 212");
+                st.executeUpdate("UPDATE book SET registration_date = '2025-01-08', page_count = 320, width = 145, height = 210, thumbnail_url = 'https://image.yes24.com/goods/120000013/XL', isbn = '9791169851234' WHERE book_id = 213");
+                st.executeUpdate("UPDATE book SET registration_date = '2025-02-14', page_count = 280, width = 140, height = 210, thumbnail_url = 'https://image.yes24.com/goods/120000014/XL', isbn = '9788935651234' WHERE book_id = 214");
+                st.executeUpdate("UPDATE book SET registration_date = '2025-03-20', page_count = 200, width = 135, height = 200, thumbnail_url = 'https://image.yes24.com/goods/120000015/XL', isbn = '9788958201234' WHERE book_id = 215");
+                st.executeUpdate("UPDATE book SET registration_date = '2025-04-25', page_count = 240, width = 145, height = 210, thumbnail_url = 'https://image.yes24.com/goods/120000016/XL', isbn = '9791162540664' WHERE book_id = 216");
+                st.executeUpdate("UPDATE book SET registration_date = '2025-05-30', page_count = 320, width = 152, height = 225, thumbnail_url = 'https://image.yes24.com/goods/120000017/XL', isbn = '9788925567802' WHERE book_id = 217");
+                st.executeUpdate("UPDATE book SET registration_date = '2025-06-15', page_count = 280, width = 145, height = 210, thumbnail_url = 'https://image.yes24.com/goods/120000018/XL', isbn = '9788934991237' WHERE book_id = 218");
+                st.executeUpdate("UPDATE book SET registration_date = '2025-07-22', page_count = 300, width = 152, height = 225, thumbnail_url = 'https://image.yes24.com/goods/120000019/XL', isbn = '9791162540671' WHERE book_id = 219");
+                st.executeUpdate("UPDATE book SET registration_date = '2025-08-18', page_count = 256, width = 145, height = 210, thumbnail_url = 'https://image.yes24.com/goods/120000020/XL', isbn = '9788925567819' WHERE book_id = 220");
+                
                 log.info("[Init] Book detail UPDATE statements executed successfully");
             }
 
@@ -637,8 +699,11 @@ public class BookInitializer implements ApplicationRunner {
                 st.executeUpdate("UPDATE book SET monthly_sales = 305, sales_count = 3300, last_sales_update = NOW() WHERE book_id = 82");
                 st.executeUpdate("UPDATE book SET monthly_sales = 290, sales_count = 2400, last_sales_update = NOW() WHERE book_id = 174");
                 
+                // 새로 추가된 도서들 (201-220) 판매량 설정
+                st.executeUpdate("UPDATE book SET monthly_sales = FLOOR(100 + RAND() * 200), sales_count = FLOOR(500 + RAND() * 1500), last_sales_update = NOW() WHERE book_id BETWEEN 201 AND 220");
+                
                 // 나머지 책들에도 랜덤한 판매량 설정
-                st.executeUpdate("UPDATE book SET monthly_sales = FLOOR(50 + RAND() * 250), sales_count = FLOOR(200 + RAND() * 2000), last_sales_update = NOW() WHERE book_id NOT IN (1, 2, 6, 13, 30, 20, 32, 52, 28, 61, 40, 101, 39, 85, 19, 41, 148, 56, 82, 174)");
+                st.executeUpdate("UPDATE book SET monthly_sales = FLOOR(50 + RAND() * 250), sales_count = FLOOR(200 + RAND() * 2000), last_sales_update = NOW() WHERE book_id NOT IN (1, 2, 6, 13, 30, 20, 32, 52, 28, 61, 40, 101, 39, 85, 19, 41, 148, 56, 82, 174, 201, 202, 203, 204, 205, 206, 207, 208, 209, 210, 211, 212, 213, 214, 215, 216, 217, 218, 219, 220)");
                 
                 log.info("[Init] Book sales UPDATE statements executed successfully");
             }
@@ -694,7 +759,11 @@ public class BookInitializer implements ApplicationRunner {
                     "(171, 157, 1), (172, 158, 1), (173, 159, 1), (174, 160, 1), (175, 161, 1), " +
                     "(176, 162, 1), (177, 163, 1), (182, 168, 1), " +
                     "(186, 172, 1), (187, 173, 1), (188, 174, 1), (189, 175, 1), (190, 176, 1), " +
-                    "(191, 177, 1), (192, 178, 1), (193, 179, 1), (194, 180, 1), (195, 181, 1)");
+                    "(191, 177, 1), (192, 178, 1), (193, 179, 1), (194, 180, 1), (195, 181, 1), " +
+                    "(201, 201, 1), (202, 202, 1), (203, 203, 1), (204, 204, 1), (205, 205, 1), " +
+                    "(206, 206, 1), (207, 207, 1), (208, 208, 1), (209, 209, 1), (210, 210, 1), " +
+                    "(211, 211, 1), (212, 212, 1), (213, 213, 1), (214, 214, 1), (215, 215, 1), " +
+                    "(216, 216, 1), (217, 217, 1), (218, 218, 1), (219, 219, 1), (220, 220, 1)");
                 
                 log.info("[Init] BookAuthor seed SQL executed successfully");
             }

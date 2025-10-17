@@ -21,16 +21,12 @@ import java.time.LocalDateTime;
 public interface AdminBookRepository extends JpaRepository<Book, Long> {
     
     /**
-     * 필터 조건에 따른 상품 목록 조회
+     * 필터 조건에 따른 상품 목록 조회 (페이징용)
      */
-    @Query("SELECT DISTINCT b FROM Book b " +
-           "LEFT JOIN FETCH b.bookAuthors ba " +
-           "LEFT JOIN FETCH ba.author " +
-           "LEFT JOIN FETCH b.category " +
-           "LEFT JOIN FETCH b.stock " +
+    @Query("SELECT b FROM Book b " +
            "WHERE (:bookTitle IS NULL OR LOWER(b.title) LIKE LOWER(CONCAT('%', :bookTitle, '%'))) " +
            "AND (:publisher IS NULL OR LOWER(b.publisher) LIKE LOWER(CONCAT('%', :publisher, '%'))) " +
-           "AND (:author IS NULL OR EXISTS (SELECT 1 FROM BookAuthor ba2 JOIN ba2.author a WHERE ba2.book = b AND LOWER(a.name) LIKE LOWER(CONCAT('%', :author, '%')))) " +
+           "AND (:author IS NULL OR b.bookId IN (SELECT DISTINCT ba.book.bookId FROM BookAuthor ba JOIN ba.author a WHERE LOWER(a.name) LIKE LOWER(CONCAT('%', :author, '%')))) " +
            "AND (:minStock IS NULL OR (b.stock IS NOT NULL AND b.stock.quantity >= :minStock)) " +
            "AND (:maxStock IS NULL OR (b.stock IS NOT NULL AND b.stock.quantity <= :maxStock)) " +
            "AND (:saleStatus IS NULL OR b.bookStatus = :saleStatus) " +
@@ -46,6 +42,7 @@ public interface AdminBookRepository extends JpaRepository<Book, Long> {
             @Param("startDate") LocalDateTime startDate,
             @Param("endDate") LocalDateTime endDate,
             Pageable pageable);
+    
     
     /**
      * AdminBookListRequest를 사용한 상품 목록 조회

@@ -32,10 +32,10 @@ public interface CategoryRepository extends JpaRepository<Category, Long> {
     List<Category> findLevel2Categories();
     
     /**
-     * Level 2 카테고리 조회 (대분류) - 등록된 도서가 있는 카테고리만
-     * 건강/취미(2), 경제/경영(3), 소설/시/희곡(4)만 조회
+     * Level 2 카테고리 조회 (대분류) - 모든 카테고리
+     * 건강/취미(2), 경제/경영(3), 소설/시/희곡(4), 역사(5), 인문(6), 자기계발(7)
      */
-    @Query("SELECT c FROM Category c WHERE c.level = 2 AND c.categoryId IN (2, 3, 4) ORDER BY c.categoryId")
+    @Query("SELECT c FROM Category c WHERE c.level = 2 ORDER BY c.categoryId")
     List<Category> findLevel2CategoriesWithBooks();
     
     /**

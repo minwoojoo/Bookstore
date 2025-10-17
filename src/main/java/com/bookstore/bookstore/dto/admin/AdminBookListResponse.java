@@ -27,8 +27,8 @@ public class AdminBookListResponse {
     private Integer stock;                  // 재고 수량
     private String saleStatus;              // 판매상태
     private String thumbnailUrl;
-    private LocalDateTime createdAt;        // 등록일
-    private LocalDateTime updatedAt;        // 수정일
+    private String createdAt;        // 등록일 (포맷된 문자열)
+    private String updatedAt;        // 수정일 (포맷된 문자열)
     private Double averageRating;           // 평균 평점
     private Integer reviewCount;            // 리뷰 수
     private String categoryName;            // 카테고리명

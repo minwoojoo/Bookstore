@@ -22,8 +22,8 @@ public class AdminMemberListResponse {
     private String phone;                   // 연락처
     private String memberStatus;            // 회원 상태
     private String memberGrade;             // 회원 등급
-    private LocalDateTime createdAt;        // 가입일
-    private LocalDateTime lastLoginAt;      // 최종 접속일
+    private String createdAt;        // 가입일 (포맷된 문자열)
+    private String lastLoginAt;      // 최종 접속일 (포맷된 문자열)
     
     // 통계 정보
     private Long totalOrders;               // 총 주문 수

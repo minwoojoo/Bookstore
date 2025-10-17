@@ -46,18 +46,21 @@ public class StockInitializer implements CommandLineRunner {
             for (Book book : books) {
                 Stock existingStock = book.getStock();
                 
+                // 새로 추가된 도서들(201-220)은 100, 나머지는 50으로 설정
+                int stockQuantity = (book.getBookId() >= 201 && book.getBookId() <= 220) ? 100 : 50;
+                
                 if (existingStock != null) {
                     // 기존 재고가 있는 경우 수량만 업데이트
-                    existingStock.setQuantity(50);
+                    existingStock.setQuantity(stockQuantity);
                     existingStock.setLastUpdated(LocalDateTime.now());
                     stockRepository.save(existingStock);
                     updatedCount++;
-                    log.debug("도서 ID {} 재고 업데이트: {} -> 50", book.getBookId(), existingStock.getQuantity());
+                    log.debug("도서 ID {} 재고 업데이트: {} -> {}", book.getBookId(), existingStock.getQuantity(), stockQuantity);
                 } else {
                     // 재고가 없는 경우 새로 생성
                     Stock newStock = Stock.builder()
                             .book(book)
-                            .quantity(50)
+                            .quantity(stockQuantity)
                             .lastUpdated(LocalDateTime.now())
                             .build();
                     
@@ -65,7 +68,7 @@ public class StockInitializer implements CommandLineRunner {
                     book.setStock(newStock);
                     bookRepository.save(book);
                     createdCount++;
-                    log.debug("도서 ID {} 재고 생성: 50", book.getBookId());
+                    log.debug("도서 ID {} 재고 생성: {}", book.getBookId(), stockQuantity);
                 }
             }
             

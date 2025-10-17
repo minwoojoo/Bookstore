@@ -22,15 +22,11 @@ import java.time.LocalDateTime;
 public interface AdminOrderRepository extends JpaRepository<Order, Long> {
     
     /**
-     * 필터 조건에 따른 주문 목록 조회
+     * 필터 조건에 따른 주문 목록 조회 (기본 정보만)
      */
     @Query("SELECT DISTINCT o FROM Order o " +
            "LEFT JOIN FETCH o.member m " +
-           "LEFT JOIN FETCH o.orderItems oi " +
-           "LEFT JOIN FETCH oi.book b " +
-           "LEFT JOIN FETCH b.bookAuthors ba " +
-           "LEFT JOIN FETCH ba.author " +
-           "WHERE (:ordererName IS NULL OR LOWER(m.name) LIKE LOWER(CONCAT('%', :ordererName, '%'))) " +
+           "WHERE (:memberName IS NULL OR LOWER(m.name) LIKE LOWER(CONCAT('%', :memberName, '%'))) " +
            "AND (:bookTitle IS NULL OR EXISTS (SELECT 1 FROM OrderItem oi2 JOIN oi2.book b2 WHERE oi2.order = o AND LOWER(b2.title) LIKE LOWER(CONCAT('%', :bookTitle, '%')))) " +
            "AND (:publisher IS NULL OR EXISTS (SELECT 1 FROM OrderItem oi3 JOIN oi3.book b3 WHERE oi3.order = o AND LOWER(b3.publisher) LIKE LOWER(CONCAT('%', :publisher, '%')))) " +
            "AND (:author IS NULL OR EXISTS (SELECT 1 FROM OrderItem oi4 JOIN oi4.book b4 JOIN b4.bookAuthors ba4 JOIN ba4.author a4 WHERE oi4.order = o AND LOWER(a4.name) LIKE LOWER(CONCAT('%', :author, '%')))) " +
@@ -39,7 +35,7 @@ public interface AdminOrderRepository extends JpaRepository<Order, Long> {
            "AND (:endDate IS NULL OR o.orderDate <= :endDate) " +
            "AND (:memberId IS NULL OR o.memberId = :memberId)")
     Page<Order> findOrdersWithFilters(
-            @Param("ordererName") String ordererName,
+            @Param("memberName") String memberName,
             @Param("bookTitle") String bookTitle,
             @Param("publisher") String publisher,
             @Param("author") String author,
@@ -60,7 +56,7 @@ public interface AdminOrderRepository extends JpaRepository<Order, Long> {
             request.getEndDate().plusDays(1).atStartOfDay() : null;
             
         return findOrdersWithFilters(
-                request.getOrdererName(),
+                request.getMemberName(),
                 request.getBookTitle(),
                 request.getPublisher(),
                 request.getAuthor(),
@@ -79,8 +75,6 @@ public interface AdminOrderRepository extends JpaRepository<Order, Long> {
            "LEFT JOIN FETCH o.member m " +
            "LEFT JOIN FETCH o.orderItems oi " +
            "LEFT JOIN FETCH oi.book b " +
-           "LEFT JOIN FETCH b.bookAuthors ba " +
-           "LEFT JOIN FETCH ba.author " +
            "LEFT JOIN FETCH b.category " +
            "LEFT JOIN FETCH o.payment p " +
            "WHERE o.orderId = :orderId")

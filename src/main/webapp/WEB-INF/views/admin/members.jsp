@@ -1,12 +1,12 @@
 <%@ page language="java" contentType="text/html; charset=UTF-8" pageEncoding="UTF-8"%>
-<%@ taglib prefix="c" uri="http://java.sun.com/jsp/jstl/core" %>
-<%@ taglib prefix="fmt" uri="http://java.sun.com/jsp/jstl/fmt" %>
+<%@ taglib prefix="c" uri="jakarta.tags.core" %>
+<%@ taglib prefix="fmt" uri="jakarta.tags.fmt" %>
 <!DOCTYPE html>
 <html lang="ko">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>상품 관리 - Online Bookstore</title>
+    <title>회원 관리 - Online Bookstore</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
     <style>
@@ -38,33 +38,26 @@
             border-bottom: 1px solid #e9ecef;
             box-shadow: 0 2px 4px rgba(0,0,0,0.1);
         }
-        .book-card {
-            background: white;
-            border-radius: 12px;
-            padding: 20px;
-            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
-            transition: transform 0.3s ease;
-        }
-        .book-card:hover {
-            transform: translateY(-5px);
-        }
-        .book-thumbnail {
-            width: 80px;
-            height: 100px;
-            object-fit: cover;
-            border-radius: 8px;
-        }
-        .status-badge {
-            font-size: 0.75rem;
-            padding: 4px 8px;
-            border-radius: 12px;
-        }
         .filter-card {
             background: white;
             border-radius: 12px;
-            padding: 20px;
-            margin-bottom: 20px;
+            padding: 24px;
             box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            margin-bottom: 24px;
+        }
+        .table-card {
+            background: white;
+            border-radius: 12px;
+            padding: 24px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        .status-badge {
+            font-size: 0.8rem;
+            padding: 4px 8px;
+        }
+        .pagination-info {
+            color: #6c757d;
+            font-size: 0.9rem;
         }
         .toggle-icon {
             transition: transform 0.3s ease;
@@ -87,7 +80,7 @@
                                 <i class="fas fa-tachometer-alt me-2"></i>
                                 대시보드
                             </a>
-                            <a class="nav-link active" href="/admin/books">
+                            <a class="nav-link" href="/admin/books">
                                 <i class="fas fa-book me-2"></i>
                                 상품 관리
                             </a>
@@ -95,7 +88,7 @@
                                 <i class="fas fa-shopping-cart me-2"></i>
                                 주문 관리
                             </a>
-                            <a class="nav-link" href="/admin/members">
+                            <a class="nav-link active" href="/admin/members">
                                 <i class="fas fa-users me-2"></i>
                                 회원 관리
                             </a>
@@ -120,14 +113,11 @@
                     <div class="admin-header">
                         <div class="d-flex justify-content-between align-items-center">
                             <h2 class="mb-0">
-                                <i class="fas fa-book me-2"></i>
-                                상품 관리
+                                <i class="fas fa-users me-2"></i>
+                                회원 관리
                             </h2>
-                            <div class="d-flex align-items-center gap-2">
-                                <a href="/admin/books/new" class="btn btn-primary">
-                                    <i class="fas fa-plus me-2"></i>
-                                    새 상품 등록
-                                </a>
+                            <div class="d-flex align-items-center">
+                                <span class="text-muted me-3">안녕하세요, ${userName}님</span>
                                 <div class="dropdown">
                                     <button class="btn btn-outline-secondary dropdown-toggle" type="button" data-bs-toggle="dropdown">
                                         <i class="fas fa-user-circle me-1"></i>
@@ -145,7 +135,7 @@
                     
                     <!-- 콘텐츠 -->
                     <div class="p-4">
-                        <!-- 검색 조건 -->
+                        <!-- 검색 필터 -->
                         <div class="filter-card">
                             <div class="d-flex justify-content-between align-items-center mb-3">
                                 <h5 class="mb-0">
@@ -158,7 +148,7 @@
                                 </button>
                             </div>
                             <div class="collapse" id="searchCollapse">
-                                <form method="get" action="/admin/books" id="searchForm">
+                                <form method="get" action="/admin/members" id="searchForm">
                                     <!-- 정렬 조건 유지 (빈 값이 아닌 경우만) -->
                                     <c:if test="${not empty param.sortBy}">
                                         <input type="hidden" name="sortBy" value="${param.sortBy}">
@@ -172,42 +162,47 @@
                                     
                                     <div class="row g-3">
                                         <div class="col-md-3">
-                                            <label class="form-label">책 이름</label>
-                                            <input type="text" class="form-control" name="bookTitle" value="${param.bookTitle}" placeholder="책 이름으로 검색">
+                                            <label for="memberId" class="form-label">회원 ID</label>
+                                            <input type="number" class="form-control" id="memberId" name="memberId" 
+                                                   value="${param.memberId}" placeholder="회원 ID 입력" min="1">
                                         </div>
                                         <div class="col-md-3">
-                                            <label class="form-label">출판사</label>
-                                            <input type="text" class="form-control" name="publisher" value="${param.publisher}" placeholder="출판사로 검색">
-                                        </div>
-                                        <div class="col-md-3">
-                                            <label class="form-label">저자</label>
-                                            <input type="text" class="form-control" name="author" value="${param.author}" placeholder="저자로 검색">
-                                        </div>
-                                        <div class="col-md-3">
-                                            <label class="form-label">판매상태</label>
-                                            <select class="form-select" name="saleStatus">
+                                            <label for="memberStatus" class="form-label">회원 상태</label>
+                                            <select class="form-select" id="memberStatus" name="memberStatus">
                                                 <option value="">전체</option>
-                                                <option value="판매중" ${param.saleStatus == '판매중' ? 'selected' : ''}>판매중</option>
-                                                <option value="절판" ${param.saleStatus == '절판' ? 'selected' : ''}>절판</option>
-                                                <option value="일시품절" ${param.saleStatus == '일시품절' ? 'selected' : ''}>일시품절</option>
-                                                <option value="입고예정" ${param.saleStatus == '입고예정' ? 'selected' : ''}>입고예정</option>
+                                                <option value="ACTIVE" ${param.memberStatus == 'ACTIVE' ? 'selected' : ''}>활성</option>
+                                                <option value="INACTIVE" ${param.memberStatus == 'INACTIVE' ? 'selected' : ''}>비활성</option>
+                                                <option value="SUSPENDED" ${param.memberStatus == 'SUSPENDED' ? 'selected' : ''}>정지</option>
                                             </select>
                                         </div>
                                         <div class="col-md-3">
-                                            <label class="form-label">재고 수량 (최소)</label>
-                                            <input type="number" class="form-control" name="minStock" value="${param.minStock}" placeholder="최소 재고">
+                                            <label for="email" class="form-label">이메일</label>
+                                            <input type="text" class="form-control" id="email" name="email" 
+                                                   value="${param.email}" placeholder="이메일 입력">
                                         </div>
                                         <div class="col-md-3">
-                                            <label class="form-label">재고 수량 (최대)</label>
-                                            <input type="number" class="form-control" name="maxStock" value="${param.maxStock}" placeholder="최대 재고">
+                                            <label for="memberGrade" class="form-label">회원 등급</label>
+                                            <select class="form-select" id="memberGrade" name="memberGrade">
+                                                <option value="">전체</option>
+                                                <option value="GOLD" ${param.memberGrade == 'GOLD' ? 'selected' : ''}>GOLD</option>
+                                                <option value="SILVER" ${param.memberGrade == 'SILVER' ? 'selected' : ''}>SILVER</option>
+                                                <option value="BRONZE" ${param.memberGrade == 'BRONZE' ? 'selected' : ''}>BRONZE</option>
+                                            </select>
                                         </div>
                                         <div class="col-md-3">
-                                            <label class="form-label">등록일 시작</label>
-                                            <input type="date" class="form-control" name="startDate" value="${param.startDate}">
+                                            <label for="memberName" class="form-label">회원 이름</label>
+                                            <input type="text" class="form-control" id="memberName" name="memberName" 
+                                                   value="${param.memberName}" placeholder="회원 이름 입력">
                                         </div>
                                         <div class="col-md-3">
-                                            <label class="form-label">등록일 종료</label>
-                                            <input type="date" class="form-control" name="endDate" value="${param.endDate}">
+                                            <label for="startDate" class="form-label">가입일 시작</label>
+                                            <input type="date" class="form-control" id="startDate" name="startDate" 
+                                                   value="${param.startDate}">
+                                        </div>
+                                        <div class="col-md-3">
+                                            <label for="endDate" class="form-label">가입일 종료</label>
+                                            <input type="date" class="form-control" id="endDate" name="endDate" 
+                                                   value="${param.endDate}">
                                         </div>
                                     </div>
                                     <div class="row mt-3">
@@ -239,25 +234,22 @@
                                 </button>
                             </div>
                             <div class="collapse" id="sortCollapse">
-                                <form method="get" action="/admin/books" id="sortForm">
+                                <form method="get" action="/admin/members" id="sortForm">
                                     <!-- 검색 조건 유지 (빈 값이 아닌 경우만) -->
-                                    <c:if test="${not empty param.bookTitle}">
-                                        <input type="hidden" name="bookTitle" value="${param.bookTitle}">
+                                    <c:if test="${not empty param.memberId}">
+                                        <input type="hidden" name="memberId" value="${param.memberId}">
                                     </c:if>
-                                    <c:if test="${not empty param.publisher}">
-                                        <input type="hidden" name="publisher" value="${param.publisher}">
+                                    <c:if test="${not empty param.memberStatus}">
+                                        <input type="hidden" name="memberStatus" value="${param.memberStatus}">
                                     </c:if>
-                                    <c:if test="${not empty param.author}">
-                                        <input type="hidden" name="author" value="${param.author}">
+                                    <c:if test="${not empty param.email}">
+                                        <input type="hidden" name="email" value="${param.email}">
                                     </c:if>
-                                    <c:if test="${not empty param.saleStatus}">
-                                        <input type="hidden" name="saleStatus" value="${param.saleStatus}">
+                                    <c:if test="${not empty param.memberGrade}">
+                                        <input type="hidden" name="memberGrade" value="${param.memberGrade}">
                                     </c:if>
-                                    <c:if test="${not empty param.minStock}">
-                                        <input type="hidden" name="minStock" value="${param.minStock}">
-                                    </c:if>
-                                    <c:if test="${not empty param.maxStock}">
-                                        <input type="hidden" name="maxStock" value="${param.maxStock}">
+                                    <c:if test="${not empty param.memberName}">
+                                        <input type="hidden" name="memberName" value="${param.memberName}">
                                     </c:if>
                                     <c:if test="${not empty param.startDate}">
                                         <input type="hidden" name="startDate" value="${param.startDate}">
@@ -268,24 +260,23 @@
                                     
                                     <div class="row g-3">
                                         <div class="col-md-4">
-                                            <label class="form-label">정렬 기준</label>
-                                            <select class="form-select" name="sortBy">
-                                                <option value="bookId" ${param.sortBy == 'bookId' ? 'selected' : ''}>상품 ID</option>
-                                                <option value="bookTitle" ${param.sortBy == 'bookTitle' ? 'selected' : ''}>책 이름</option>
-                                                <option value="price" ${param.sortBy == 'price' ? 'selected' : ''}>가격</option>
-                                                <option value="createdAt" ${param.sortBy == 'createdAt' ? 'selected' : ''}>등록일</option>
+                                            <label for="sortBy" class="form-label">정렬 기준</label>
+                                            <select class="form-select" id="sortBy" name="sortBy">
+                                                <option value="memberId" ${param.sortBy == 'memberId' ? 'selected' : ''}>회원 ID</option>
+                                                <option value="memberName" ${param.sortBy == 'memberName' ? 'selected' : ''}>회원 이름</option>
+                                                <option value="registrationDate" ${param.sortBy == 'registrationDate' ? 'selected' : ''}>가입일</option>
                                             </select>
                                         </div>
                                         <div class="col-md-4">
-                                            <label class="form-label">정렬 방향</label>
-                                            <select class="form-select" name="sortDirection">
+                                            <label for="sortDirection" class="form-label">정렬 방향</label>
+                                            <select class="form-select" id="sortDirection" name="sortDirection">
                                                 <option value="asc" ${param.sortDirection == 'asc' ? 'selected' : ''}>오름차순</option>
                                                 <option value="desc" ${param.sortDirection == 'desc' ? 'selected' : ''}>내림차순</option>
                                             </select>
                                         </div>
                                         <div class="col-md-4">
-                                            <label class="form-label">페이지 크기</label>
-                                            <select class="form-select" name="size">
+                                            <label for="size" class="form-label">페이지 크기</label>
+                                            <select class="form-select" id="size" name="size">
                                                 <option value="30" ${param.size == '30' ? 'selected' : ''}>30개</option>
                                                 <option value="50" ${param.size == '50' ? 'selected' : ''}>50개</option>
                                                 <option value="100" ${param.size == '100' ? 'selected' : ''}>100개</option>
@@ -308,85 +299,103 @@
                             </div>
                         </div>
                         
-                        <!-- 상품 목록 -->
-                        <div class="row">
-                            <c:forEach var="book" items="${books.content}">
-                                <div class="col-md-6 col-lg-4 mb-4">
-                                    <div class="book-card">
-                                        <div class="d-flex">
-                                            <img src="${book.thumbnailUrl}" alt="${book.title}" class="book-thumbnail me-3">
-                                            <div class="flex-grow-1">
-                                                <h6 class="mb-2">${book.title}</h6>
-                                                <p class="text-muted small mb-1">
-                                                    <i class="fas fa-user me-1"></i>
-                                                    ${book.authors[0]}
-                                                </p>
-                                                <p class="text-muted small mb-1">
-                                                    <i class="fas fa-building me-1"></i>
-                                                    ${book.publisher}
-                                                </p>
-                                                <p class="text-muted small mb-2">
-                                                    <i class="fas fa-box me-1"></i>
-                                                    재고: ${book.stock}권
-                                                </p>
-                                                <div class="d-flex justify-content-between align-items-center">
-                                                    <span class="fw-bold text-primary">
-                                                        <fmt:formatNumber value="${book.price}" pattern="#,##0"/>원
-                                                    </span>
-                                                    <span class="status-badge 
-                                                        ${book.saleStatus == '판매중' ? 'bg-success' : 
-                                                          book.saleStatus == '절판' ? 'bg-danger' : 
-                                                          book.saleStatus == '일시품절' ? 'bg-warning' : 'bg-info'} text-white">
-                                                        ${book.saleStatus}
-                                                    </span>
-                                                </div>
-                                                <div class="mt-2">
-                                                    <a href="/admin/books/${book.bookId}/stock" class="btn btn-sm btn-outline-success">
-                                                        <i class="fas fa-boxes me-1"></i>
-                                                        재고관리
-                                                    </a>
-                                                </div>
-                                            </div>
-                                        </div>
-                                    </div>
+                        <!-- 회원 목록 테이블 -->
+                        <div class="table-card">
+                            <div class="d-flex justify-content-between align-items-center mb-3">
+                                <h5 class="mb-0">
+                                    <i class="fas fa-list me-2"></i>
+                                    회원 목록
+                                </h5>
+                                <div class="pagination-info">
+                                    총 ${totalElements}명 중 ${(currentPage * pageSize) + 1}-${Math.min((currentPage + 1) * pageSize, totalElements)}명 표시
                                 </div>
-                            </c:forEach>
-                        </div>
-                        
-                        <!-- 페이지네이션 -->
-                        <c:if test="${books.totalPages > 1}">
-                            <nav aria-label="상품 목록 페이지네이션">
-                                <ul class="pagination justify-content-center">
-                                    <c:if test="${books.hasPrevious()}">
-                                        <li class="page-item">
-                                            <a class="page-link" href="#" onclick="goToPage(${books.number - 1}); return false;">
+                            </div>
+                            
+                            <div class="table-responsive">
+                                <table class="table table-hover">
+                                    <thead class="table-light">
+                                        <tr>
+                                            <th>회원 ID</th>
+                                            <th>이름</th>
+                                            <th>이메일</th>
+                                            <th>전화번호</th>
+                                            <th>회원 등급</th>
+                                            <th>상태</th>
+                                            <th>가입일</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        <c:choose>
+                                            <c:when test="${not empty members}">
+                                                <c:forEach var="member" items="${members}">
+                                                    <tr style="cursor: pointer;" onclick="viewMember('${member.memberId}')" 
+                                                        onmouseover="this.style.backgroundColor='#f8f9fa'" 
+                                                        onmouseout="this.style.backgroundColor=''">
+                                                        <td>${member.memberId}</td>
+                                                        <td>${member.memberName}</td>
+                                                        <td>${member.email}</td>
+                                                        <td>${member.phone}</td>
+                                                        <td>
+                                                            <span class="badge bg-${member.memberGrade == 'GOLD' ? 'warning' : member.memberGrade == 'SILVER' ? 'secondary' : 'success'}">
+                                                                ${member.memberGrade}
+                                                            </span>
+                                                        </td>
+                                                        <td>
+                                                            <span class="badge status-badge bg-${member.memberStatus == 'ACTIVE' ? 'success' : member.memberStatus == 'INACTIVE' ? 'secondary' : 'danger'}">
+                                                                ${member.memberStatus == 'ACTIVE' ? '활성' : member.memberStatus == 'INACTIVE' ? '비활성' : '정지'}
+                                                            </span>
+                                                        </td>
+                                                        <td>
+                                                            ${member.createdAt}
+                                                        </td>
+                                                    </tr>
+                                                </c:forEach>
+                                            </c:when>
+                                            <c:otherwise>
+                                                <tr>
+                                                    <td colspan="7" class="text-center text-muted py-4">
+                                                        <i class="fas fa-users fa-3x mb-3"></i>
+                                                        <br>
+                                                        검색 조건에 맞는 회원이 없습니다.
+                                                    </td>
+                                                </tr>
+                                            </c:otherwise>
+                                        </c:choose>
+                                    </tbody>
+                                </table>
+                            </div>
+                            
+                            <!-- 페이징 -->
+                            <c:if test="${totalPages > 1}">
+                                <nav aria-label="회원 목록 페이징">
+                                    <ul class="pagination justify-content-center">
+                                        <!-- 이전 페이지 -->
+                                        <li class="page-item ${currentPage == 0 ? 'disabled' : ''}">
+                                            <a class="page-link" href="#" onclick="goToPage(${currentPage - 1}); return false;">
                                                 <i class="fas fa-chevron-left"></i>
                                             </a>
                                         </li>
-                                    </c:if>
-                                    
-                                    <c:forEach var="i" begin="${Math.max(0, books.number - 2)}" end="${Math.min(books.totalPages - 1, books.number + 2)}">
-                                        <li class="page-item ${i == books.number ? 'active' : ''}">
-                                            <a class="page-link" href="#" onclick="goToPage(${i}); return false;">
-                                                ${i + 1}
-                                            </a>
-                                        </li>
-                                    </c:forEach>
-                                    
-                                    <c:if test="${books.hasNext()}">
-                                        <li class="page-item">
-                                            <a class="page-link" href="#" onclick="goToPage(${books.number + 1}); return false;">
+                                        
+                                        <!-- 페이지 번호 -->
+                                        <c:forEach begin="0" end="${totalPages - 1}" var="pageNum">
+                                            <c:if test="${pageNum >= currentPage - 2 && pageNum <= currentPage + 2}">
+                                                <li class="page-item ${pageNum == currentPage ? 'active' : ''}">
+                                                    <a class="page-link" href="#" onclick="goToPage(${pageNum}); return false;">
+                                                        ${pageNum + 1}
+                                                    </a>
+                                                </li>
+                                            </c:if>
+                                        </c:forEach>
+                                        
+                                        <!-- 다음 페이지 -->
+                                        <li class="page-item ${currentPage == totalPages - 1 ? 'disabled' : ''}">
+                                            <a class="page-link" href="#" onclick="goToPage(${currentPage + 1}); return false;">
                                                 <i class="fas fa-chevron-right"></i>
                                             </a>
                                         </li>
-                                    </c:if>
-                                </ul>
-                            </nav>
-                        </c:if>
-                        
-                        <!-- 결과 정보 -->
-                        <div class="text-center text-muted">
-                            총 ${books.totalElements}개의 상품이 있습니다. (${books.number + 1}/${books.totalPages} 페이지)
+                                    </ul>
+                                </nav>
+                            </c:if>
                         </div>
                     </div>
                 </div>
@@ -401,7 +410,7 @@
         function resetForm() {
             document.getElementById('searchForm').reset();
             // 정렬 조건은 유지하고 검색만 초기화
-            let url = '/admin/books';
+            let url = '/admin/members';
             let params = [];
             
             if ('${param.sortBy}' !== '') params.push('sortBy=${param.sortBy}');
@@ -419,15 +428,14 @@
         function resetSort() {
             document.getElementById('sortForm').reset();
             // 검색 조건은 유지하고 정렬만 초기화
-            let url = '/admin/books';
+            let url = '/admin/members';
             let params = [];
             
-            if ('${param.bookTitle}' !== '') params.push('bookTitle=${param.bookTitle}');
-            if ('${param.publisher}' !== '') params.push('publisher=${param.publisher}');
-            if ('${param.author}' !== '') params.push('author=${param.author}');
-            if ('${param.saleStatus}' !== '') params.push('saleStatus=${param.saleStatus}');
-            if ('${param.minStock}' !== '') params.push('minStock=${param.minStock}');
-            if ('${param.maxStock}' !== '') params.push('maxStock=${param.maxStock}');
+            if ('${param.memberId}' !== '') params.push('memberId=${param.memberId}');
+            if ('${param.memberStatus}' !== '') params.push('memberStatus=${param.memberStatus}');
+            if ('${param.email}' !== '') params.push('email=${param.email}');
+            if ('${param.memberGrade}' !== '') params.push('memberGrade=${param.memberGrade}');
+            if ('${param.memberName}' !== '') params.push('memberName=${param.memberName}');
             if ('${param.startDate}' !== '') params.push('startDate=${param.startDate}');
             if ('${param.endDate}' !== '') params.push('endDate=${param.endDate}');
             
@@ -438,29 +446,45 @@
             window.location.href = url;
         }
         
-        // 검색 폼 제출 시 빈 값 제거
+        // 회원 상세 보기
+        function viewMember(memberId) {
+            window.location.href = '/admin/members/' + memberId;
+        }
+        
+        // 회원 수정
+        function editMember(memberId) {
+            // TODO: 회원 수정 모달 또는 페이지 구현
+            alert('회원 ID: ' + memberId + ' 수정 페이지로 이동합니다.');
+        }
+        
+        // 검색 폼 제출 시 빈 값 제거하고 정렬 조건 유지
         document.getElementById('searchForm').addEventListener('submit', function(e) {
             e.preventDefault();
             
-            let url = '/admin/books';
+            let url = '/admin/members';
             let params = [];
             
             // 검색 조건 수집 (빈 값이 아닌 경우만)
-            const bookTitle = document.querySelector('input[name="bookTitle"]').value.trim();
-            const publisher = document.querySelector('input[name="publisher"]').value.trim();
-            const author = document.querySelector('input[name="author"]').value.trim();
-            const saleStatus = document.querySelector('select[name="saleStatus"]').value;
-            const minStock = document.querySelector('input[name="minStock"]').value.trim();
-            const maxStock = document.querySelector('input[name="maxStock"]').value.trim();
+            const memberId = document.querySelector('input[name="memberId"]').value.trim();
+            const memberStatus = document.querySelector('select[name="memberStatus"]').value;
+            const email = document.querySelector('input[name="email"]').value.trim();
+            const memberGrade = document.querySelector('select[name="memberGrade"]').value;
+            const memberName = document.querySelector('input[name="memberName"]').value.trim();
             const startDate = document.querySelector('input[name="startDate"]').value;
             const endDate = document.querySelector('input[name="endDate"]').value;
             
-            if (bookTitle !== '') params.push('bookTitle=' + encodeURIComponent(bookTitle));
-            if (publisher !== '') params.push('publisher=' + encodeURIComponent(publisher));
-            if (author !== '') params.push('author=' + encodeURIComponent(author));
-            if (saleStatus !== '') params.push('saleStatus=' + encodeURIComponent(saleStatus));
-            if (minStock !== '') params.push('minStock=' + encodeURIComponent(minStock));
-            if (maxStock !== '') params.push('maxStock=' + encodeURIComponent(maxStock));
+            // 회원 ID 유효성 검사
+            if (memberId !== '') {
+                if (!/^\d+$/.test(memberId)) {
+                    alert('회원 ID는 숫자만 입력 가능합니다.');
+                    return;
+                }
+                params.push('memberId=' + encodeURIComponent(memberId));
+            }
+            if (memberStatus !== '') params.push('memberStatus=' + encodeURIComponent(memberStatus));
+            if (email !== '') params.push('email=' + encodeURIComponent(email));
+            if (memberGrade !== '') params.push('memberGrade=' + encodeURIComponent(memberGrade));
+            if (memberName !== '') params.push('memberName=' + encodeURIComponent(memberName));
             if (startDate !== '') params.push('startDate=' + encodeURIComponent(startDate));
             if (endDate !== '') params.push('endDate=' + encodeURIComponent(endDate));
             
@@ -476,23 +500,54 @@
             window.location.href = url;
         });
         
-        // 페이지 크기 변경 시 자동 검색
+        // 정렬 폼 제출 시 검색 조건 유지
+        document.getElementById('sortForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+            
+            let url = '/admin/members';
+            let params = [];
+            
+            // 검색 조건 유지
+            if ('${param.memberId}' !== '') params.push('memberId=${param.memberId}');
+            if ('${param.memberStatus}' !== '') params.push('memberStatus=${param.memberStatus}');
+            if ('${param.email}' !== '') params.push('email=${param.email}');
+            if ('${param.memberGrade}' !== '') params.push('memberGrade=${param.memberGrade}');
+            if ('${param.memberName}' !== '') params.push('memberName=${param.memberName}');
+            if ('${param.startDate}' !== '') params.push('startDate=${param.startDate}');
+            if ('${param.endDate}' !== '') params.push('endDate=${param.endDate}');
+            
+            // 정렬 조건 수집
+            const sortBy = document.querySelector('select[name="sortBy"]').value;
+            const sortDirection = document.querySelector('select[name="sortDirection"]').value;
+            const size = document.querySelector('select[name="size"]').value;
+            
+            if (sortBy !== '') params.push('sortBy=' + encodeURIComponent(sortBy));
+            if (sortDirection !== '') params.push('sortDirection=' + encodeURIComponent(sortDirection));
+            if (size !== '') params.push('size=' + encodeURIComponent(size));
+            
+            if (params.length > 0) {
+                url += '?' + params.join('&');
+            }
+            
+            window.location.href = url;
+        });
+        
+        // 페이지 크기 변경 시 자동 정렬 적용
         document.getElementById('size').addEventListener('change', function() {
             document.getElementById('sortForm').submit();
         });
         
         // 페이지 이동 함수
         function goToPage(pageNumber) {
-            let url = '/admin/books';
+            let url = '/admin/members';
             let params = [];
             
             // 현재 URL의 모든 파라미터를 수집
-            if ('${param.bookTitle}' !== '') params.push('bookTitle=${param.bookTitle}');
-            if ('${param.publisher}' !== '') params.push('publisher=${param.publisher}');
-            if ('${param.author}' !== '') params.push('author=${param.author}');
-            if ('${param.saleStatus}' !== '') params.push('saleStatus=${param.saleStatus}');
-            if ('${param.minStock}' !== '') params.push('minStock=${param.minStock}');
-            if ('${param.maxStock}' !== '') params.push('maxStock=${param.maxStock}');
+            if ('${param.memberId}' !== '') params.push('memberId=${param.memberId}');
+            if ('${param.memberStatus}' !== '') params.push('memberStatus=${param.memberStatus}');
+            if ('${param.email}' !== '') params.push('email=${param.email}');
+            if ('${param.memberGrade}' !== '') params.push('memberGrade=${param.memberGrade}');
+            if ('${param.memberName}' !== '') params.push('memberName=${param.memberName}');
             if ('${param.startDate}' !== '') params.push('startDate=${param.startDate}');
             if ('${param.endDate}' !== '') params.push('endDate=${param.endDate}');
             if ('${param.sortBy}' !== '') params.push('sortBy=${param.sortBy}');

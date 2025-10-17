@@ -34,8 +34,8 @@ public class AdminBookDetailResponse {
     private Integer reviewCount;            // 리뷰 수
     private Integer salesCount;             // 판매 수량
     private String categoryName;            // 카테고리명
-    private LocalDateTime createdAt;        // 등록일
-    private LocalDateTime updatedAt;        // 수정일
+    private String createdAt;        // 등록일 (포맷된 문자열)
+    private String updatedAt;        // 수정일 (포맷된 문자열)
     
     // 통계 정보
     private Long totalOrders;               // 총 주문 수

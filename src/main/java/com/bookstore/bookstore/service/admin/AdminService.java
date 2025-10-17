@@ -2,11 +2,24 @@ package com.bookstore.bookstore.service.admin;
 
 import com.bookstore.bookstore.dto.admin.*;
 import com.bookstore.bookstore.entity.book.Book;
+import com.bookstore.bookstore.entity.book.Stock;
+import com.bookstore.bookstore.entity.book.Category;
+import com.bookstore.bookstore.entity.book.Author;
+import com.bookstore.bookstore.entity.book.BookAuthor;
+import com.bookstore.bookstore.entity.customer.Admin;
 import com.bookstore.bookstore.entity.order.Order;
+import com.bookstore.bookstore.entity.order.OrderItem;
 import com.bookstore.bookstore.entity.customer.Member;
 import com.bookstore.bookstore.repository.admin.AdminBookRepository;
 import com.bookstore.bookstore.repository.admin.AdminOrderRepository;
+import com.bookstore.bookstore.repository.admin.AdminOrderItemRepository;
 import com.bookstore.bookstore.repository.admin.AdminMemberRepository;
+import com.bookstore.bookstore.repository.book.CategoryRepository;
+import com.bookstore.bookstore.repository.book.StockRepository;
+import com.bookstore.bookstore.repository.book.BookRepository;
+import com.bookstore.bookstore.repository.book.AuthorRepository;
+import com.bookstore.bookstore.repository.book.BookAuthorRepository;
+import com.bookstore.bookstore.repository.admin.AdminRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
@@ -19,6 +32,7 @@ import org.springframework.transaction.annotation.Transactional;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.time.LocalDate;
+import java.time.format.DateTimeFormatter;
 import java.util.List;
 import java.util.ArrayList;
 import java.util.stream.Collectors;
@@ -34,7 +48,14 @@ public class AdminService {
     
     private final AdminBookRepository adminBookRepository;
     private final AdminOrderRepository adminOrderRepository;
+    private final AdminOrderItemRepository adminOrderItemRepository;
     private final AdminMemberRepository adminMemberRepository;
+    private final CategoryRepository categoryRepository;
+    private final StockRepository stockRepository;
+    private final BookRepository bookRepository;
+    private final AuthorRepository authorRepository;
+    private final BookAuthorRepository bookAuthorRepository;
+    private final AdminRepository adminRepository;
     
     /**
      * 관리자 대시보드 통계 조회
@@ -80,9 +101,8 @@ public class AdminService {
         // 재고 부족 도서 수 (재고 10개 이하)
         Long lowStockBooks = adminBookRepository.countLowStockBooks(10);
         
-        // 활성 회원 수 (최근 30일 내 활동)
-        LocalDateTime thirtyDaysAgo = today.minusDays(30).atStartOfDay();
-        Long activeMembers = adminMemberRepository.countActiveMembers(thirtyDaysAgo);
+        // 활성 회원 수 (ACTIVE 상태인 회원)
+        Long activeMembers = adminMemberRepository.countActiveMembers(null);
         
         return AdminDashboardStatsResponse.builder()
                 .totalBooks(totalBooks)
@@ -154,7 +174,8 @@ public class AdminService {
      * 상품 목록 조회
      */
     public Page<AdminBookListResponse> getBookList(AdminBookListRequest request) {
-        log.info("관리자 상품 목록 조회: {}", request);
+        log.info("관리자 상품 목록 조회 요청: page={}, size={}, sortBy={}, sortDirection={}", 
+                request.getPage(), request.getSize(), request.getSortBy(), request.getSortDirection());
         
         // 정렬 설정
         Sort sort = Sort.by(
@@ -164,13 +185,22 @@ public class AdminService {
         
         // 페이징 설정
         Pageable pageable = PageRequest.of(request.getPage(), request.getSize(), sort);
+        log.info("페이징 설정: page={}, size={}, sort={}", pageable.getPageNumber(), pageable.getPageSize(), sort);
         
-        // 상품 목록 조회 (Repository에서 LocalDate -> LocalDateTime 변환 처리)
-        Page<Book> books = adminBookRepository.findBooksWithFilters(request, pageable);
+                // 상품 목록 조회
+                Page<Book> books = adminBookRepository.findBooksWithFilters(request, pageable);
+        
+        log.info("조회 결과: totalElements={}, totalPages={}, currentPage={}, contentSize={}", 
+                books.getTotalElements(), books.getTotalPages(), books.getNumber(), books.getContent().size());
         
         // DTO 변환
-        return books.map(this::convertToBookListResponse);
+        Page<AdminBookListResponse> result = books.map(this::convertToBookListResponse);
+        log.info("변환 결과: totalElements={}, totalPages={}, currentPage={}, contentSize={}", 
+                result.getTotalElements(), result.getTotalPages(), result.getNumber(), result.getContent().size());
+        
+        return result;
     }
+    
     
     /**
      * 상품 상세 조회
@@ -207,7 +237,7 @@ public class AdminService {
         
         // 주문 목록 조회
         Page<Order> orders = adminOrderRepository.findOrdersWithFilters(
-            request.getOrdererName(),
+            request.getMemberName(),
             request.getBookTitle(),
             request.getPublisher(),
             request.getAuthor(),
@@ -266,23 +296,8 @@ public class AdminService {
         // 페이징 설정
         Pageable pageable = PageRequest.of(request.getPage(), request.getSize(), sort);
         
-        // 날짜 변환 (LocalDate -> LocalDateTime)
-        LocalDateTime startDate = request.getStartDate() != null ? 
-            request.getStartDate().atStartOfDay() : null;
-        LocalDateTime endDate = request.getEndDate() != null ? 
-            request.getEndDate().plusDays(1).atStartOfDay() : null;
-        
-        // 회원 목록 조회
-        Page<Member> members = adminMemberRepository.findMembersWithFilters(
-            request.getMemberId(),
-            request.getMemberStatus(),
-            request.getEmail(),
-            startDate,
-            endDate,
-            request.getMemberGrade(),
-            request.getMemberName(),
-            pageable
-        );
+        // 회원 목록 조회 (Repository의 default 메서드 사용)
+        Page<Member> members = adminMemberRepository.findMembersWithFilters(request, pageable);
         
         // DTO 변환
         return members.map(this::convertToMemberListResponse);
@@ -306,24 +321,51 @@ public class AdminService {
      * Book을 AdminBookListResponse로 변환
      */
     private AdminBookListResponse convertToBookListResponse(Book book) {
+        // 연관 엔티티 지연 로딩 처리
+        List<String> authors = List.of();
+        try {
+            if (book.getBookAuthors() != null && !book.getBookAuthors().isEmpty()) {
+                authors = book.getBookAuthors().stream()
+                    .map(ba -> ba.getAuthor().getName())
+                    .collect(Collectors.toList());
+            }
+        } catch (Exception e) {
+            log.warn("저자 정보 로딩 실패: bookId={}, error={}", book.getBookId(), e.getMessage());
+        }
+        
+        String categoryName = null;
+        try {
+            if (book.getCategory() != null) {
+                categoryName = book.getCategory().getCategoryName();
+            }
+        } catch (Exception e) {
+            log.warn("카테고리 정보 로딩 실패: bookId={}, error={}", book.getBookId(), e.getMessage());
+        }
+        
+        Integer stockQuantity = 0;
+        try {
+            if (book.getStock() != null) {
+                stockQuantity = book.getStock().getQuantity();
+            }
+        } catch (Exception e) {
+            log.warn("재고 정보 로딩 실패: bookId={}, error={}", book.getBookId(), e.getMessage());
+        }
+        
         return AdminBookListResponse.builder()
                 .bookId(book.getBookId())
                 .isbn(book.getIsbn())
                 .title(book.getTitle())
                 .publisher(book.getPublisher())
-                .authors(book.getBookAuthors() != null ? 
-                    book.getBookAuthors().stream()
-                        .map(ba -> ba.getAuthor().getName())
-                        .collect(Collectors.toList()) : List.of())
+                .authors(authors)
                 .price(book.getPrice())
-                .stock(book.getStock() != null ? book.getStock().getQuantity() : 0)
+                .stock(stockQuantity)
                 .saleStatus(book.getBookStatus())
                 .thumbnailUrl(book.getThumbnailUrl())
-                .createdAt(book.getRegistrationDate()) // registration_date 필드 사용
-                .updatedAt(null) // updatedAt 컬럼이 없음
-                .averageRating(book.getRatingAvg() != null ? book.getRatingAvg().doubleValue() : 0.0) // rating_avg 필드 사용, null 체크
-                .reviewCount(null) // reviewCount 필드가 없음 (별도 계산 필요)
-                .categoryName(book.getCategory() != null ? book.getCategory().getCategoryName() : null)
+                .createdAt(formatDateTime(book.getRegistrationDate()))
+                .updatedAt(null)
+                .averageRating(book.getRatingAvg() != null ? book.getRatingAvg().doubleValue() : 0.0)
+                .reviewCount(null)
+                .categoryName(categoryName)
                 .build();
     }
     
@@ -351,7 +393,7 @@ public class AdminService {
                 .reviewCount(null) // reviewCount 필드가 없음 (별도 계산 필요)
                 .salesCount(book.getSalesCount())
                 .categoryName(book.getCategory() != null ? book.getCategory().getCategoryName() : null)
-                .createdAt(book.getRegistrationDate()) // registration_date 필드 사용
+                .createdAt(formatDateTime(book.getRegistrationDate())) // registration_date 필드 사용
                 .updatedAt(null) // updatedAt 컬럼이 없음
                 .totalOrders(0L) // TODO: 실제 통계 계산
                 .totalSales(BigDecimal.ZERO) // TODO: 실제 통계 계산
@@ -363,6 +405,9 @@ public class AdminService {
      * Order를 AdminOrderListResponse로 변환
      */
     private AdminOrderListResponse convertToOrderListResponse(Order order) {
+        // 주문 아이템들을 별도로 조회
+        List<AdminOrderListResponse.OrderItemInfo> orderItems = getOrderItemsForOrder(order.getOrderId());
+        
         return AdminOrderListResponse.builder()
                 .orderId(order.getOrderId())
                 .memberId(order.getMemberId())
@@ -376,13 +421,22 @@ public class AdminService {
                 .recipientPhone(order.getRecipientPhone())
                 .deliveryAddress(order.getDeliveryAddress())
                 .memo(order.getMemo())
-                .orderDate(order.getOrderDate())
+                .orderDate(order.getOrderDate() != null ? 
+                    order.getOrderDate().format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm")) : "")
                 .updatedAt(null) // Order 엔티티에 updatedAt 필드가 없음
-                .orderItems(order.getOrderItems() != null ? 
-                    order.getOrderItems().stream()
-                        .map(this::convertToOrderItemInfo)
-                        .collect(Collectors.toList()) : List.of())
+                .orderItems(orderItems)
                 .build();
+    }
+    
+    /**
+     * 주문의 아이템들을 조회
+     */
+    private List<AdminOrderListResponse.OrderItemInfo> getOrderItemsForOrder(Long orderId) {
+        // OrderItem을 직접 조회하여 N+1 문제 방지
+        List<OrderItem> orderItems = adminOrderItemRepository.findByOrderId(orderId);
+        return orderItems.stream()
+                .map(this::convertToOrderItemInfo)
+                .collect(Collectors.toList());
     }
     
     /**
@@ -397,13 +451,15 @@ public class AdminService {
                 .memberPhone(order.getMember() != null ? order.getMember().getPhone() : "")
                 .totalAmount(BigDecimal.valueOf(order.getTotalAmount()))
                 .discountAmount(BigDecimal.valueOf(order.getDiscountAmount()))
+                .deliveryFee(BigDecimal.valueOf(0)) // 기본 배송비 0원
                 .finalPaymentAmount(BigDecimal.valueOf(order.getFinalPaymentAmount()))
                 .orderStatus(order.getOrderStatus())
                 .recipientName(order.getRecipientName())
                 .recipientPhone(order.getRecipientPhone())
                 .deliveryAddress(order.getDeliveryAddress())
                 .memo(order.getMemo())
-                .orderDate(order.getOrderDate())
+                .orderDate(order.getOrderDate() != null ? 
+                    order.getOrderDate().format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm")) : "")
                 .updatedAt(null) // Order 엔티티에 updatedAt 필드가 없음
                 .payment(convertToPaymentInfo(order))
                 .orderItems(order.getOrderItems() != null ? 
@@ -424,7 +480,7 @@ public class AdminService {
                 .phone(member.getPhone())
                 .memberStatus(member.getStatus())
                 .memberGrade(member.getMemberGrade())
-                .createdAt(member.getRegistrationDate())
+                .createdAt(formatDateTime(member.getRegistrationDate()))
                 .lastLoginAt(null) // Member 엔티티에 lastLoginAt 필드가 없음
                 .totalOrders(0L) // TODO: 실제 통계 계산
                 .totalAmount(0L) // TODO: 실제 통계 계산
@@ -436,6 +492,16 @@ public class AdminService {
      * Member를 AdminMemberDetailResponse로 변환
      */
     private AdminMemberDetailResponse convertToMemberDetailResponse(Member member) {
+        Long memberId = member.getMemberId();
+        
+        // 실제 통계 데이터 조회
+        Long totalOrders = adminMemberRepository.countOrdersByMemberId(memberId);
+        Long totalAmount = adminMemberRepository.getTotalAmountByMemberId(memberId);
+        Long totalReviews = adminMemberRepository.countReviewsByMemberId(memberId);
+        Double averageRating = adminMemberRepository.getAverageRatingByMemberId(memberId);
+        LocalDateTime lastOrderDate = adminMemberRepository.getLastOrderDateByMemberId(memberId);
+        LocalDateTime lastReviewDate = adminMemberRepository.getLastReviewDateByMemberId(memberId);
+        
         return AdminMemberDetailResponse.builder()
                 .memberId(member.getMemberId())
                 .memberName(member.getName())
@@ -443,19 +509,19 @@ public class AdminService {
                 .phone(member.getPhone())
                 .memberStatus(member.getStatus())
                 .memberGrade(member.getMemberGrade())
-                .createdAt(member.getRegistrationDate())
+                .createdAt(formatDateTime(member.getRegistrationDate()))
                 .lastLoginAt(null) // Member 엔티티에 lastLoginAt 필드가 없음
                 .updatedAt(null) // Member 엔티티에 updatedDate 필드가 없음
                 .addresses(member.getAddresses() != null ? 
                     member.getAddresses().stream()
                         .map(this::convertToAddressInfo)
                         .collect(Collectors.toList()) : List.of())
-                .totalOrders(0L) // TODO: 실제 통계 계산
-                .totalAmount(0L) // TODO: 실제 통계 계산
-                .totalReviews(0L) // TODO: 실제 통계 계산
-                .averageRating(0.0) // TODO: 실제 통계 계산
-                .lastOrderDate(null) // TODO: 실제 통계 계산
-                .lastReviewDate(null) // TODO: 실제 통계 계산
+                .totalOrders(totalOrders != null ? totalOrders : 0L)
+                .totalAmount(totalAmount != null ? totalAmount : 0L)
+                .totalReviews(totalReviews != null ? totalReviews : 0L)
+                .averageRating(averageRating != null ? averageRating : 0.0)
+                .lastOrderDate(formatDateTime(lastOrderDate))
+                .lastReviewDate(formatDateTime(lastReviewDate))
                 .build();
     }
     
@@ -484,11 +550,7 @@ public class AdminService {
                 .orderItemId(orderItem.getOrderItemId())
                 .bookId(orderItem.getBookId())
                 .bookTitle(orderItem.getBook() != null ? orderItem.getBook().getTitle() : "알 수 없음")
-                .bookAuthor(orderItem.getBook() != null && orderItem.getBook().getBookAuthors() != null ? 
-                    orderItem.getBook().getBookAuthors().stream()
-                        .map(ba -> ba.getAuthor().getName())
-                        .findFirst()
-                        .orElse("작자미상") : "작자미상")
+                .bookAuthor("작자미상") // bookAuthors를 별도 fetch하지 않으므로 기본값 사용
                 .publisher(orderItem.getBook() != null ? orderItem.getBook().getPublisher() : "알 수 없음")
                 .thumbnailUrl(orderItem.getBook() != null ? orderItem.getBook().getThumbnailUrl() : "")
                 .quantity(orderItem.getQuantity())
@@ -516,5 +578,179 @@ public class AdminService {
                 .fullAddress(address.getAddressBasic() + " " + address.getAddressDetail())
                 .isDefault(false) // MemberAddress 엔티티에 isDefault 필드가 없음
                 .build();
+    }
+
+    /**
+     * 도서 재고 정보 조회
+     */
+    public AdminBookStockResponse getBookStockInfo(Long bookId) {
+        log.info("도서 재고 정보 조회: bookId={}", bookId);
+
+        Book book = adminBookRepository.findByIdWithDetails(bookId)
+                .orElseThrow(() -> new IllegalArgumentException("도서를 찾을 수 없습니다: " + bookId));
+
+        // 재고 변경 이력 조회 (간단한 구현 - 실제로는 별도 테이블 필요)
+        List<AdminBookStockResponse.StockHistoryItem> stockHistory = List.of();
+
+        return AdminBookStockResponse.builder()
+                .bookId(book.getBookId())
+                .title(book.getTitle())
+                .isbn(book.getIsbn())
+                .publisher(book.getPublisher())
+                .authors(book.getBookAuthors().stream()
+                        .map(ba -> ba.getAuthor().getName())
+                        .collect(Collectors.toList()))
+                .price(book.getPrice())
+                .stock(book.getStock() != null ? book.getStock().getQuantity() : 0)
+                .saleStatus(book.getBookStatus())
+                .thumbnailUrl(book.getThumbnailUrl())
+                .stockHistory(stockHistory)
+                .build();
+    }
+
+    /**
+     * 도서 재고 업데이트
+     */
+    @Transactional
+    public void updateBookStock(Long bookId, AdminBookStockRequest request) {
+        log.info("도서 재고 업데이트: bookId={}, adjustment={}, newStock={}", 
+                bookId, request.getAdjustment(), request.getNewStock());
+
+        Book book = adminBookRepository.findByIdWithDetails(bookId)
+                .orElseThrow(() -> new IllegalArgumentException("도서를 찾을 수 없습니다: " + bookId));
+
+        Stock stock = book.getStock();
+        if (stock == null) {
+            throw new IllegalArgumentException("재고 정보를 찾을 수 없습니다: " + bookId);
+        }
+
+        int currentQuantity = stock.getQuantity();
+        int newQuantity = request.getNewStock();
+
+        // 재고 수량 검증
+        if (newQuantity < 0) {
+            throw new IllegalArgumentException("재고 수량은 0 이상이어야 합니다.");
+        }
+
+        // 재고 업데이트
+        stock.setQuantity(newQuantity);
+        stock.setLastUpdated(LocalDateTime.now());
+
+        // 판매상태 자동 업데이트
+        if (newQuantity == 0) {
+            book.setBookStatus("일시품절");
+        } else if (newQuantity < 10) {
+            book.setBookStatus("일시품절");
+        } else if ("일시품절".equals(book.getBookStatus()) && newQuantity >= 10) {
+            book.setBookStatus("판매중");
+        } else if (book.getBookStatus() == null) {
+            // bookStatus가 null인 경우 기본값 설정
+            book.setBookStatus("판매중");
+        }
+
+        log.info("재고 업데이트 완료: bookId={}, {} -> {} ({}권 {})", 
+                bookId, currentQuantity, newQuantity, 
+                request.getAdjustment() > 0 ? "+" : "", request.getAdjustment());
+    }
+    
+    /**
+     * 최하위 카테고리 조회 (상품 등록용)
+     */
+    @Transactional(readOnly = true)
+    public List<Category> getAllCategories() {
+        return categoryRepository.findByLevel(3);
+    }
+    
+    /**
+     * 새 상품 등록
+     */
+    @Transactional
+    public Long createBook(AdminBookCreateRequest request, Long adminId) {
+        log.info("상품 등록 시작: {}", request);
+        
+        // 카테고리 조회
+        Category category = categoryRepository.findById(request.getCategoryId())
+                .orElseThrow(() -> new IllegalArgumentException("카테고리를 찾을 수 없습니다: " + request.getCategoryId()));
+        
+        // 관리자 조회
+        Admin admin = adminRepository.findById(adminId)
+                .orElseThrow(() -> new IllegalArgumentException("관리자를 찾을 수 없습니다: " + adminId));
+        
+        // Book 엔티티 생성
+        Book book = Book.builder()
+                .isbn(request.getIsbn())
+                .title(request.getTitle())
+                .description(request.getDescription())
+                .width(request.getWidth())
+                .height(request.getHeight())
+                .pageCount(request.getPageCount())
+                .thumbnailUrl(request.getThumbnailUrl())
+                .previewUrl(request.getPreviewUrl())
+                .ratingAvg(request.getRatingAvg() != null ? request.getRatingAvg() : BigDecimal.ZERO)
+                .bookStatus(request.getBookStatus())
+                .registrationDate(LocalDateTime.now())
+                .price(request.getPrice())
+                .publisher(request.getPublisher())
+                .salesCount(request.getSalesCount() != null ? request.getSalesCount() : 0)
+                .monthlySales(request.getMonthlySales() != null ? request.getMonthlySales() : 0)
+                .lastSalesUpdate(LocalDateTime.now())
+                .category(category)
+                .createdAdmin(admin)
+                .updatedAdmin(admin)
+                .build();
+        
+        // Book 저장
+        Book savedBook = bookRepository.save(book);
+        
+        // 저자 정보 처리 (Book 저장 후)
+        if (request.getAuthors() != null && !request.getAuthors().trim().isEmpty()) {
+            String[] authorNames = request.getAuthors().split(",");
+            
+            for (int i = 0; i < authorNames.length; i++) {
+                String authorName = authorNames[i].trim();
+                if (!authorName.isEmpty()) {
+                    // Author 조회 또는 생성
+                    Author author = authorRepository.findByName(authorName)
+                            .orElseGet(() -> {
+                                Author newAuthor = Author.builder()
+                                        .name(authorName)
+                                        .description("")
+                                        .build();
+                                return authorRepository.save(newAuthor);
+                            });
+                    
+                    // BookAuthor 관계 생성
+                    BookAuthor bookAuthor = BookAuthor.builder()
+                            .bookId(savedBook.getBookId())
+                            .authorId(author.getAuthorId())
+                            .authorOrder(i + 1)
+                            .book(savedBook)
+                            .author(author)
+                            .build();
+                    
+                    // BookAuthor 저장
+                    bookAuthorRepository.save(bookAuthor);
+                }
+            }
+        }
+        
+        // 재고 정보 생성
+        Stock stock = Stock.builder()
+                .book(savedBook)
+                .quantity(request.getStockQuantity() != null ? request.getStockQuantity() : 0)
+                .lastUpdated(LocalDateTime.now())
+                .build();
+        stockRepository.save(stock);
+        
+        log.info("상품 등록 완료: bookId={}", savedBook.getBookId());
+        return savedBook.getBookId();
+    }
+    
+    /**
+     * LocalDateTime을 포맷된 문자열로 변환하는 헬퍼 메서드
+     */
+    private String formatDateTime(LocalDateTime dateTime) {
+        return dateTime != null ? 
+            dateTime.format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm")) : "";
     }
 }

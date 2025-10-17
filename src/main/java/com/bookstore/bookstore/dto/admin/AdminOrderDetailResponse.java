@@ -25,14 +25,15 @@ public class AdminOrderDetailResponse {
     private String memberPhone;             // 주문자 연락처
     private BigDecimal totalAmount;         // 주문 금액
     private BigDecimal discountAmount;      // 할인 금액
+    private BigDecimal deliveryFee;         // 배송비
     private BigDecimal finalPaymentAmount;  // 최종 결제 금액
     private String orderStatus;             // 주문 상태
     private String recipientName;           // 수령인 이름
     private String recipientPhone;          // 수령인 연락처
     private String deliveryAddress;         // 배송 주소
     private String memo;                    // 배송 메모
-    private LocalDateTime orderDate;        // 주문일
-    private LocalDateTime updatedAt;        // 수정일
+    private String orderDate;        // 주문일 (포맷된 문자열)
+    private String updatedAt;        // 수정일 (포맷된 문자열)
     
     // 결제 정보
     private PaymentInfo payment;
@@ -50,7 +51,7 @@ public class AdminOrderDetailResponse {
         private BigDecimal amount;          // 결제 금액
         private String paymentMethod;       // 결제 수단
         private String paymentStatus;       // 결제 상태
-        private LocalDateTime paymentDate;  // 결제일
+        private String paymentDate;  // 결제일 (포맷된 문자열)
     }
     
     @Data

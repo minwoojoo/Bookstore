@@ -32,7 +32,7 @@ public class BookService {
     
     /**
      * Level 2 카테고리 목록 조회 (대분류)
-     * 등록된 도서가 있는 카테고리만 조회 (건강/취미, 경제/경영, 소설/시/희곡)
+     * 모든 카테고리 조회 (건강/취미, 경제/경영, 소설/시/희곡, 역사, 인문, 자기계발)
      */
     public List<CategoryResponse> getLevel2Categories() {
         List<Category> categories = categoryRepository.findLevel2CategoriesWithBooks();
