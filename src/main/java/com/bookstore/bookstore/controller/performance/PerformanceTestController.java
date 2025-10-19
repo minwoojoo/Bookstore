@@ -1,8 +1,16 @@
 package com.bookstore.bookstore.controller.performance;
 
 import com.bookstore.bookstore.entity.book.Book;
+import com.bookstore.bookstore.entity.customer.Member;
+import com.bookstore.bookstore.entity.order.Order;
 import com.bookstore.bookstore.repository.book.BookRepository;
+import com.bookstore.bookstore.repository.customer.MemberRepository;
+import com.bookstore.bookstore.repository.order.OrderRepository;
 import com.bookstore.bookstore.dto.performance.BookPerformanceDto;
+import com.bookstore.bookstore.service.admin.AdminService;
+import com.bookstore.bookstore.dto.admin.AdminBookListRequest;
+import com.bookstore.bookstore.dto.admin.AdminOrderListRequest;
+import com.bookstore.bookstore.dto.admin.AdminMemberListRequest;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -27,6 +35,9 @@ import java.util.ArrayList;
 public class PerformanceTestController {
     
     private final BookRepository bookRepository;
+    private final MemberRepository memberRepository;
+    private final OrderRepository orderRepository;
+    private final AdminService adminService;
     
     /**
      * N+1 문제가 발생하는 방식으로 도서 목록 조회
@@ -387,6 +398,597 @@ public class PerformanceTestController {
         log.info("N+1 방식: {}ms", n1ExecutionTime);
         log.info("최적화 방식: {}ms", optExecutionTime);
         log.info("성능 개선: {}% (시간)", String.format("%.1f", timeImprovement));
+        
+        return result;
+    }
+    
+    // ==================== 관리자 대시보드 성능 테스트 ====================
+    
+    /**
+     * 관리자 대시보드 - 상품 목록 조회 성능 테스트 (비최적화)
+     * - 복합 필터링과 페이징을 사용하지 않는 방식
+     */
+    @GetMapping("/admin/books/non-optimized")
+    public Map<String, Object> getAdminBooksNonOptimized(
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size,
+            @RequestParam(required = false) String title,
+            @RequestParam(required = false) String publisher,
+            @RequestParam(required = false) Long categoryId,
+            @RequestParam(required = false) String bookStatus,
+            @RequestParam(required = false) String sortBy,
+            @RequestParam(defaultValue = "desc") String sortDir) {
+        
+        log.info("=== 관리자 상품 목록 조회 성능 테스트 (비최적화) 시작 ===");
+        long startTime = System.currentTimeMillis();
+        
+        // 비최적화된 방식: 모든 데이터를 가져온 후 메모리에서 필터링
+        List<Book> allBooks = bookRepository.findAll();
+        
+        // 메모리에서 필터링 (비효율적)
+        List<Book> filteredBooks = allBooks.stream()
+                .filter(book -> title == null || book.getTitle().contains(title))
+                .filter(book -> publisher == null || book.getPublisher().contains(publisher))
+                .filter(book -> categoryId == null || book.getCategory().getCategoryId().equals(categoryId))
+                .filter(book -> bookStatus == null || book.getBookStatus().equals(bookStatus))
+                .toList();
+        
+        // 메모리에서 정렬 (비효율적)
+        if (sortBy != null) {
+            filteredBooks = filteredBooks.stream()
+                    .sorted((b1, b2) -> {
+                        int result = 0;
+                        switch (sortBy) {
+                            case "title":
+                                result = b1.getTitle().compareTo(b2.getTitle());
+                                break;
+                            case "price":
+                                result = b1.getPrice().compareTo(b2.getPrice());
+                                break;
+                            case "registrationDate":
+                                result = b1.getRegistrationDate().compareTo(b2.getRegistrationDate());
+                                break;
+                        }
+                        return "desc".equals(sortDir) ? -result : result;
+                    })
+                    .toList();
+        }
+        
+        // 메모리에서 페이징 (비효율적)
+        int start = page * size;
+        int end = Math.min(start + size, filteredBooks.size());
+        List<Book> pagedBooks = filteredBooks.subList(start, end);
+        
+        long endTime = System.currentTimeMillis();
+        long executionTime = endTime - startTime;
+        
+        Map<String, Object> result = new HashMap<>();
+        result.put("testType", "관리자 상품 목록 조회 (비최적화)");
+        result.put("executionTime", executionTime);
+        result.put("totalBooks", allBooks.size());
+        result.put("filteredBooks", filteredBooks.size());
+        result.put("pagedBooks", pagedBooks.size());
+        result.put("page", page);
+        result.put("size", size);
+        
+        log.info("관리자 상품 목록 조회 (비최적화) - 실행 시간: {}ms, 전체: {}, 필터링: {}, 페이징: {}", 
+                executionTime, allBooks.size(), filteredBooks.size(), pagedBooks.size());
+        log.info("=== 관리자 상품 목록 조회 성능 테스트 (비최적화) 완료 ===");
+        
+        return result;
+    }
+    
+    /**
+     * 관리자 대시보드 - 상품 목록 조회 성능 테스트 (최적화)
+     * - GROUP BY와 복합 필터링, 페이징을 활용한 최적화된 방식
+     */
+    @GetMapping("/admin/books/optimized")
+    public Map<String, Object> getAdminBooksOptimized(
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size,
+            @RequestParam(required = false) String title,
+            @RequestParam(required = false) String publisher,
+            @RequestParam(required = false) Long categoryId,
+            @RequestParam(required = false) String bookStatus,
+            @RequestParam(required = false) String sortBy,
+            @RequestParam(defaultValue = "desc") String sortDir) {
+        
+        log.info("=== 관리자 상품 목록 조회 성능 테스트 (최적화) 시작 ===");
+        long startTime = System.currentTimeMillis();
+        
+        // 최적화된 방식: AdminService의 최적화된 메서드 사용
+        AdminBookListRequest request = AdminBookListRequest.builder()
+                .bookTitle(title)
+                .publisher(publisher)
+                .saleStatus(bookStatus)
+                .sortBy(sortBy != null ? sortBy : "bookId")
+                .sortDirection(sortDir != null ? sortDir : "desc")
+                .page(page)
+                .size(size)
+                .build();
+        
+        var result = adminService.getBookList(request);
+        
+        long endTime = System.currentTimeMillis();
+        long executionTime = endTime - startTime;
+        
+        Map<String, Object> performanceResult = new HashMap<>();
+        performanceResult.put("testType", "관리자 상품 목록 조회 (최적화)");
+        performanceResult.put("executionTime", executionTime);
+        performanceResult.put("totalBooks", result.getTotalElements());
+        performanceResult.put("filteredBooks", result.getContent().size());
+        performanceResult.put("pagedBooks", result.getContent().size());
+        performanceResult.put("page", page);
+        performanceResult.put("size", size);
+        performanceResult.put("totalPages", result.getTotalPages());
+        
+        log.info("관리자 상품 목록 조회 (최적화) - 실행 시간: {}ms, 전체: {}, 필터링: {}, 페이징: {}", 
+                executionTime, result.getTotalElements(), result.getContent().size(), result.getContent().size());
+        log.info("=== 관리자 상품 목록 조회 성능 테스트 (최적화) 완료 ===");
+        
+        return performanceResult;
+    }
+    
+    /**
+     * 관리자 대시보드 - 주문 목록 조회 성능 테스트 (비최적화)
+     */
+    @GetMapping("/admin/orders/non-optimized")
+    public Map<String, Object> getAdminOrdersNonOptimized(
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size,
+            @RequestParam(required = false) String memberName,
+            @RequestParam(required = false) String startDate,
+            @RequestParam(required = false) String endDate) {
+        
+        log.info("=== 관리자 주문 목록 조회 성능 테스트 (비최적화) 시작 ===");
+        long startTime = System.currentTimeMillis();
+        
+        // 비최적화된 방식: 모든 주문을 가져온 후 메모리에서 필터링
+        List<Order> allOrders = orderRepository.findAll();
+        
+        // 메모리에서 필터링 (비효율적)
+        List<Order> filteredOrders = allOrders.stream()
+                .filter(order -> memberName == null || order.getMember().getName().contains(memberName))
+                .filter(order -> startDate == null || order.getOrderDate().toString().contains(startDate))
+                .filter(order -> endDate == null || order.getOrderDate().toString().contains(endDate))
+                .toList();
+        
+        // 메모리에서 페이징 (비효율적)
+        int start = page * size;
+        int end = Math.min(start + size, filteredOrders.size());
+        List<Order> pagedOrders = filteredOrders.subList(start, end);
+        
+        long endTime = System.currentTimeMillis();
+        long executionTime = endTime - startTime;
+        
+        Map<String, Object> result = new HashMap<>();
+        result.put("testType", "관리자 주문 목록 조회 (비최적화)");
+        result.put("executionTime", executionTime);
+        result.put("totalOrders", allOrders.size());
+        result.put("filteredOrders", filteredOrders.size());
+        result.put("pagedOrders", pagedOrders.size());
+        result.put("page", page);
+        result.put("size", size);
+        
+        log.info("관리자 주문 목록 조회 (비최적화) - 실행 시간: {}ms, 전체: {}, 필터링: {}, 페이징: {}", 
+                executionTime, allOrders.size(), filteredOrders.size(), pagedOrders.size());
+        log.info("=== 관리자 주문 목록 조회 성능 테스트 (비최적화) 완료 ===");
+        
+        return result;
+    }
+    
+    /**
+     * 관리자 대시보드 - 주문 목록 조회 성능 테스트 (최적화)
+     */
+    @GetMapping("/admin/orders/optimized")
+    public Map<String, Object> getAdminOrdersOptimized(
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size,
+            @RequestParam(required = false) String memberName,
+            @RequestParam(required = false) String startDate,
+            @RequestParam(required = false) String endDate) {
+        
+        log.info("=== 관리자 주문 목록 조회 성능 테스트 (최적화) 시작 ===");
+        long startTime = System.currentTimeMillis();
+        
+        // 최적화된 방식: AdminService의 최적화된 메서드 사용
+        AdminOrderListRequest request = AdminOrderListRequest.builder()
+                .memberName(memberName)
+                .startDate(startDate != null ? java.time.LocalDate.parse(startDate) : null)
+                .endDate(endDate != null ? java.time.LocalDate.parse(endDate) : null)
+                .page(page)
+                .size(size)
+                .build();
+        
+        var result = adminService.getOrderList(request);
+        
+        long endTime = System.currentTimeMillis();
+        long executionTime = endTime - startTime;
+        
+        Map<String, Object> performanceResult = new HashMap<>();
+        performanceResult.put("testType", "관리자 주문 목록 조회 (최적화)");
+        performanceResult.put("executionTime", executionTime);
+        performanceResult.put("totalOrders", result.getTotalElements());
+        performanceResult.put("filteredOrders", result.getContent().size());
+        performanceResult.put("pagedOrders", result.getContent().size());
+        performanceResult.put("page", page);
+        performanceResult.put("size", size);
+        performanceResult.put("totalPages", result.getTotalPages());
+        
+        log.info("관리자 주문 목록 조회 (최적화) - 실행 시간: {}ms, 전체: {}, 필터링: {}, 페이징: {}", 
+                executionTime, result.getTotalElements(), result.getContent().size(), result.getContent().size());
+        log.info("=== 관리자 주문 목록 조회 성능 테스트 (최적화) 완료 ===");
+        
+        return performanceResult;
+    }
+    
+    /**
+     * 관리자 대시보드 - 회원 목록 조회 성능 테스트 (비최적화)
+     */
+    @GetMapping("/admin/members/non-optimized")
+    public Map<String, Object> getAdminMembersNonOptimized(
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size,
+            @RequestParam(required = false) String name,
+            @RequestParam(required = false) String email,
+            @RequestParam(required = false) String memberId) {
+        
+        log.info("=== 관리자 회원 목록 조회 성능 테스트 (비최적화) 시작 ===");
+        long startTime = System.currentTimeMillis();
+        
+        // 비최적화된 방식: 모든 회원을 가져온 후 메모리에서 필터링
+        List<Member> allMembers = memberRepository.findAll();
+        
+        // 메모리에서 필터링 (비효율적)
+        List<Member> filteredMembers = allMembers.stream()
+                .filter(member -> name == null || member.getName().contains(name))
+                .filter(member -> email == null || member.getEmail().contains(email))
+                .filter(member -> memberId == null || member.getMemberId().toString().contains(memberId))
+                .toList();
+        
+        // 메모리에서 페이징 (비효율적)
+        int start = page * size;
+        int end = Math.min(start + size, filteredMembers.size());
+        List<Member> pagedMembers = filteredMembers.subList(start, end);
+        
+        long endTime = System.currentTimeMillis();
+        long executionTime = endTime - startTime;
+        
+        Map<String, Object> result = new HashMap<>();
+        result.put("testType", "관리자 회원 목록 조회 (비최적화)");
+        result.put("executionTime", executionTime);
+        result.put("totalMembers", allMembers.size());
+        result.put("filteredMembers", filteredMembers.size());
+        result.put("pagedMembers", pagedMembers.size());
+        result.put("page", page);
+        result.put("size", size);
+        
+        log.info("관리자 회원 목록 조회 (비최적화) - 실행 시간: {}ms, 전체: {}, 필터링: {}, 페이징: {}", 
+                executionTime, allMembers.size(), filteredMembers.size(), pagedMembers.size());
+        log.info("=== 관리자 회원 목록 조회 성능 테스트 (비최적화) 완료 ===");
+        
+        return result;
+    }
+    
+    /**
+     * 관리자 대시보드 - 회원 목록 조회 성능 테스트 (최적화)
+     */
+    @GetMapping("/admin/members/optimized")
+    public Map<String, Object> getAdminMembersOptimized(
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size,
+            @RequestParam(required = false) String name,
+            @RequestParam(required = false) String email,
+            @RequestParam(required = false) String memberId) {
+        
+        log.info("=== 관리자 회원 목록 조회 성능 테스트 (최적화) 시작 ===");
+        long startTime = System.currentTimeMillis();
+        
+        // 최적화된 방식: AdminService의 최적화된 메서드 사용
+        AdminMemberListRequest request = AdminMemberListRequest.builder()
+                .memberName(name)
+                .email(email)
+                .memberId(memberId)
+                .page(page)
+                .size(size)
+                .build();
+        
+        var result = adminService.getMemberList(request);
+        
+        long endTime = System.currentTimeMillis();
+        long executionTime = endTime - startTime;
+        
+        Map<String, Object> performanceResult = new HashMap<>();
+        performanceResult.put("testType", "관리자 회원 목록 조회 (최적화)");
+        performanceResult.put("executionTime", executionTime);
+        performanceResult.put("totalMembers", result.getTotalElements());
+        performanceResult.put("filteredMembers", result.getContent().size());
+        performanceResult.put("pagedMembers", result.getContent().size());
+        performanceResult.put("page", page);
+        performanceResult.put("size", size);
+        performanceResult.put("totalPages", result.getTotalPages());
+        
+        log.info("관리자 회원 목록 조회 (최적화) - 실행 시간: {}ms, 전체: {}, 필터링: {}, 페이징: {}", 
+                executionTime, result.getTotalElements(), result.getContent().size(), result.getContent().size());
+        log.info("=== 관리자 회원 목록 조회 성능 테스트 (최적화) 완료 ===");
+        
+        return performanceResult;
+    }
+    
+    /**
+     * 관리자 대시보드 - 주문 목록 조회 성능 비교
+     */
+    @GetMapping("/admin/compare/orders")
+    public Map<String, Object> compareAdminOrdersPerformance(
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size,
+            @RequestParam(required = false) String memberName,
+            @RequestParam(required = false) String startDate,
+            @RequestParam(required = false) String endDate) {
+        
+        Map<String, Object> result = new HashMap<>();
+        
+        log.info("=== 관리자 주문 목록 조회 성능 비교 테스트 시작 ===");
+        
+        // 비최적화 방식 테스트
+        long n1StartTime = System.currentTimeMillis();
+        Map<String, Object> n1Result = getAdminOrdersNonOptimized(page, size, memberName, startDate, endDate);
+        long n1EndTime = System.currentTimeMillis();
+        long n1ExecutionTime = n1EndTime - n1StartTime;
+        
+        // 잠시 대기 (캐시 효과 방지)
+        try {
+            Thread.sleep(100);
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+        }
+        
+        // 최적화 방식 테스트
+        long optStartTime = System.currentTimeMillis();
+        Map<String, Object> optResult = getAdminOrdersOptimized(page, size, memberName, startDate, endDate);
+        long optEndTime = System.currentTimeMillis();
+        long optExecutionTime = optEndTime - optStartTime;
+        
+        // 결과 비교
+        result.put("testType", "관리자 주문 목록 조회 성능 비교");
+        result.put("filters", Map.of(
+            "memberName", memberName != null ? memberName : "전체",
+            "startDate", startDate != null ? startDate : "전체",
+            "endDate", endDate != null ? endDate : "전체"
+        ));
+        result.put("pagination", Map.of("page", page, "size", size));
+        
+        Map<String, Object> n1Stats = new HashMap<>();
+        n1Stats.put("executionTime", n1ExecutionTime);
+        n1Stats.put("totalOrders", n1Result.get("totalOrders"));
+        n1Stats.put("filteredOrders", n1Result.get("filteredOrders"));
+        result.put("nonOptimized", n1Stats);
+        
+        Map<String, Object> optStats = new HashMap<>();
+        optStats.put("executionTime", optExecutionTime);
+        optStats.put("totalOrders", optResult.get("totalOrders"));
+        optStats.put("filteredOrders", optResult.get("filteredOrders"));
+        result.put("optimized", optStats);
+        
+        // 성능 개선율 계산
+        double timeImprovement = n1ExecutionTime > 0 ? 
+            ((double)(n1ExecutionTime - optExecutionTime) / n1ExecutionTime) * 100 : 0;
+        
+        Map<String, Object> improvement = new HashMap<>();
+        improvement.put("timeImprovement", String.format("%.1f%%", timeImprovement));
+        improvement.put("timeSaved", n1ExecutionTime - optExecutionTime);
+        result.put("improvement", improvement);
+        
+        log.info("=== 관리자 주문 목록 조회 성능 비교 결과 ===");
+        log.info("비최적화 방식: {}ms", n1ExecutionTime);
+        log.info("최적화 방식: {}ms", optExecutionTime);
+        log.info("성능 개선: {}% (시간)", String.format("%.1f", timeImprovement));
+        
+        return result;
+    }
+    
+    /**
+     * 관리자 대시보드 - 상품 목록 조회 성능 비교
+     */
+    @GetMapping("/admin/compare/books")
+    public Map<String, Object> compareAdminBooksPerformance(
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size,
+            @RequestParam(required = false) String title,
+            @RequestParam(required = false) String publisher,
+            @RequestParam(required = false) Long categoryId,
+            @RequestParam(required = false) String bookStatus,
+            @RequestParam(required = false) String sortBy,
+            @RequestParam(defaultValue = "desc") String sortDir) {
+        
+        Map<String, Object> result = new HashMap<>();
+        
+        log.info("=== 관리자 상품 목록 조회 성능 비교 테스트 시작 ===");
+        
+        // 비최적화 방식 테스트
+        long n1StartTime = System.currentTimeMillis();
+        Map<String, Object> n1Result = getAdminBooksNonOptimized(page, size, title, publisher, categoryId, bookStatus, sortBy, sortDir);
+        long n1EndTime = System.currentTimeMillis();
+        long n1ExecutionTime = n1EndTime - n1StartTime;
+        
+        // 잠시 대기 (캐시 효과 방지)
+        try {
+            Thread.sleep(100);
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+        }
+        
+        // 최적화 방식 테스트
+        long optStartTime = System.currentTimeMillis();
+        Map<String, Object> optResult = getAdminBooksOptimized(page, size, title, publisher, categoryId, bookStatus, sortBy, sortDir);
+        long optEndTime = System.currentTimeMillis();
+        long optExecutionTime = optEndTime - optStartTime;
+        
+        // 결과 비교
+        result.put("testType", "관리자 상품 목록 조회 성능 비교");
+        result.put("filters", Map.of(
+            "title", title != null ? title : "전체",
+            "publisher", publisher != null ? publisher : "전체",
+            "categoryId", categoryId != null ? categoryId : "전체",
+            "bookStatus", bookStatus != null ? bookStatus : "전체"
+        ));
+        result.put("pagination", Map.of("page", page, "size", size));
+        
+        Map<String, Object> n1Stats = new HashMap<>();
+        n1Stats.put("executionTime", n1ExecutionTime);
+        n1Stats.put("totalBooks", n1Result.get("totalBooks"));
+        n1Stats.put("filteredBooks", n1Result.get("filteredBooks"));
+        result.put("nonOptimized", n1Stats);
+        
+        Map<String, Object> optStats = new HashMap<>();
+        optStats.put("executionTime", optExecutionTime);
+        optStats.put("totalBooks", optResult.get("totalBooks"));
+        optStats.put("filteredBooks", optResult.get("filteredBooks"));
+        result.put("optimized", optStats);
+        
+        // 성능 개선율 계산
+        double timeImprovement = n1ExecutionTime > 0 ? 
+            ((double)(n1ExecutionTime - optExecutionTime) / n1ExecutionTime) * 100 : 0;
+        
+        Map<String, Object> improvement = new HashMap<>();
+        improvement.put("timeImprovement", String.format("%.1f%%", timeImprovement));
+        improvement.put("timeSaved", n1ExecutionTime - optExecutionTime);
+        result.put("improvement", improvement);
+        
+        log.info("=== 관리자 상품 목록 조회 성능 비교 결과 ===");
+        log.info("비최적화 방식: {}ms", n1ExecutionTime);
+        log.info("최적화 방식: {}ms", optExecutionTime);
+        log.info("성능 개선: {}% (시간)", String.format("%.1f", timeImprovement));
+        
+        return result;
+    }
+    
+    
+    /**
+     * 관리자 대시보드 - 회원 목록 조회 성능 비교
+     */
+    @GetMapping("/admin/compare/members")
+    public Map<String, Object> compareAdminMembersPerformance(
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size,
+            @RequestParam(required = false) String name,
+            @RequestParam(required = false) String email,
+            @RequestParam(required = false) String memberId) {
+        
+        Map<String, Object> result = new HashMap<>();
+        
+        log.info("=== 관리자 회원 목록 조회 성능 비교 테스트 시작 ===");
+        
+        // 비최적화 방식 테스트
+        long n1StartTime = System.currentTimeMillis();
+        Map<String, Object> n1Result = getAdminMembersNonOptimized(page, size, name, email, memberId);
+        long n1EndTime = System.currentTimeMillis();
+        long n1ExecutionTime = n1EndTime - n1StartTime;
+        
+        // 잠시 대기 (캐시 효과 방지)
+        try {
+            Thread.sleep(100);
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+        }
+        
+        // 최적화 방식 테스트
+        long optStartTime = System.currentTimeMillis();
+        Map<String, Object> optResult = getAdminMembersOptimized(page, size, name, email, memberId);
+        long optEndTime = System.currentTimeMillis();
+        long optExecutionTime = optEndTime - optStartTime;
+        
+        // 결과 비교
+        result.put("testType", "관리자 회원 목록 조회 성능 비교");
+        result.put("filters", Map.of(
+            "name", name != null ? name : "전체",
+            "email", email != null ? email : "전체",
+            "memberId", memberId != null ? memberId : "전체"
+        ));
+        result.put("pagination", Map.of("page", page, "size", size));
+        
+        Map<String, Object> n1Stats = new HashMap<>();
+        n1Stats.put("executionTime", n1ExecutionTime);
+        n1Stats.put("totalMembers", n1Result.get("totalMembers"));
+        n1Stats.put("filteredMembers", n1Result.get("filteredMembers"));
+        result.put("nonOptimized", n1Stats);
+        
+        Map<String, Object> optStats = new HashMap<>();
+        optStats.put("executionTime", optExecutionTime);
+        optStats.put("totalMembers", optResult.get("totalMembers"));
+        optStats.put("filteredMembers", optResult.get("filteredMembers"));
+        result.put("optimized", optStats);
+        
+        // 성능 개선율 계산
+        double timeImprovement = n1ExecutionTime > 0 ? 
+            ((double)(n1ExecutionTime - optExecutionTime) / n1ExecutionTime) * 100 : 0;
+        
+        Map<String, Object> improvement = new HashMap<>();
+        improvement.put("timeImprovement", String.format("%.1f%%", timeImprovement));
+        improvement.put("timeSaved", n1ExecutionTime - optExecutionTime);
+        result.put("improvement", improvement);
+        
+        log.info("=== 관리자 회원 목록 조회 성능 비교 결과 ===");
+        log.info("비최적화 방식: {}ms", n1ExecutionTime);
+        log.info("최적화 방식: {}ms", optExecutionTime);
+        log.info("성능 개선: {}% (시간)", String.format("%.1f", timeImprovement));
+        
+        return result;
+    }
+    
+    /**
+     * 관리자 대시보드 전체 성능 비교 (종합 테스트)
+     */
+    @GetMapping("/admin/compare/all")
+    public Map<String, Object> compareAdminDashboardPerformance(
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size) {
+        
+        Map<String, Object> result = new HashMap<>();
+        
+        log.info("=== 관리자 대시보드 전체 성능 비교 테스트 시작 ===");
+        
+        // 상품 목록 조회 성능 비교
+        Map<String, Object> booksResult = compareAdminBooksPerformance(page, size, null, null, null, null, null, "desc");
+        
+        // 주문 목록 조회 성능 비교
+        Map<String, Object> ordersResult = compareAdminOrdersPerformance(page, size, null, null, null);
+        
+        // 회원 목록 조회 성능 비교
+        Map<String, Object> membersResult = compareAdminMembersPerformance(page, size, null, null, null);
+        
+        // 종합 결과
+        result.put("testType", "관리자 대시보드 전체 성능 비교");
+        result.put("booksPerformance", booksResult);
+        result.put("ordersPerformance", ordersResult);
+        result.put("membersPerformance", membersResult);
+        
+        // 전체 성능 개선율 계산
+        @SuppressWarnings("unchecked")
+        Map<String, Object> booksImprovementMap = (Map<String, Object>) booksResult.get("improvement");
+        @SuppressWarnings("unchecked")
+        Map<String, Object> ordersImprovementMap = (Map<String, Object>) ordersResult.get("improvement");
+        @SuppressWarnings("unchecked")
+        Map<String, Object> membersImprovementMap = (Map<String, Object>) membersResult.get("improvement");
+        
+        double booksImprovement = Double.parseDouble(booksImprovementMap.get("timeImprovement").toString().replace("%", ""));
+        double ordersImprovement = Double.parseDouble(ordersImprovementMap.get("timeImprovement").toString().replace("%", ""));
+        double membersImprovement = Double.parseDouble(membersImprovementMap.get("timeImprovement").toString().replace("%", ""));
+        
+        double avgImprovement = (booksImprovement + ordersImprovement + membersImprovement) / 3;
+        
+        Map<String, Object> overallImprovement = new HashMap<>();
+        overallImprovement.put("averageImprovement", String.format("%.1f%%", avgImprovement));
+        overallImprovement.put("booksImprovement", String.format("%.1f%%", booksImprovement));
+        overallImprovement.put("ordersImprovement", String.format("%.1f%%", ordersImprovement));
+        overallImprovement.put("membersImprovement", String.format("%.1f%%", membersImprovement));
+        result.put("overallImprovement", overallImprovement);
+        
+        log.info("=== 관리자 대시보드 전체 성능 비교 결과 ===");
+        log.info("상품 목록 개선율: {}%", String.format("%.1f", booksImprovement));
+        log.info("주문 목록 개선율: {}%", String.format("%.1f", ordersImprovement));
+        log.info("회원 목록 개선율: {}%", String.format("%.1f", membersImprovement));
+        log.info("전체 평균 개선율: {}%", String.format("%.1f", avgImprovement));
         
         return result;
     }
