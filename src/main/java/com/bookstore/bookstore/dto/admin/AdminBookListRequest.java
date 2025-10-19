@@ -43,6 +43,9 @@ public class AdminBookListRequest {
      * 정렬 조건을 Spring Data JPA Sort 형식으로 변환
      */
     public String getSortProperty() {
+        if (sortBy == null) {
+            return "bookId";
+        }
         switch (sortBy) {
             case "bookTitle":
                 return "title";
