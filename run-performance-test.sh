@@ -4,24 +4,46 @@ echo "========================================"
 echo "JMeter 성능 테스트 실행 스크립트"
 echo "========================================"
 
+SCENARIO="$1"
+
+if [ -z "$SCENARIO" ]; then
+  echo "Usage: ./run-performance-test.sh nplus1 | optimized"
+  echo ""
+  echo "Run nplus1 first, restart the Spring Boot server, then run optimized."
+  exit 1
+fi
+
 # JMeter 설치 경로 설정 (실제 설치 경로로 변경 필요)
-JMETER_HOME="/opt/apache-jmeter-5.6.2"
+JMETER_HOME="/opt/apache-jmeter-5.6.3"
 JMETER_BIN="$JMETER_HOME/bin"
 
-# 테스트 계획 파일 경로
-TEST_PLAN="jmeter-test-plan.jmx"
-
-# 결과 파일 경로
-RESULT_FILE="performance-test-results.jtl"
-REPORT_DIR="performance-report"
+if [ "$SCENARIO" = "nplus1" ]; then
+  TEST_PLAN="jmeter-test-plan-nplus1.jmx"
+  RESULT_FILE="performance-results-nplus1.jtl"
+  REPORT_DIR="performance-report-nplus1"
+elif [ "$SCENARIO" = "optimized" ]; then
+  TEST_PLAN="jmeter-test-plan-optimized.jmx"
+  RESULT_FILE="performance-results-optimized.jtl"
+  REPORT_DIR="performance-report-optimized"
+else
+  echo "Unknown scenario: $SCENARIO"
+  echo "Usage: ./run-performance-test.sh nplus1 | optimized"
+  exit 1
+fi
 
 echo ""
 echo "1. 애플리케이션 실행 확인..."
-echo "   http://localhost:8080/api/performance/books/n-plus-1"
-echo "   http://localhost:8080/api/performance/books/optimized"
+if [ "$SCENARIO" = "nplus1" ]; then
+  echo "   http://localhost:8080/api/performance/books/n-plus-1"
+else
+  echo "   http://localhost:8080/api/performance/books/optimized"
+fi
 echo ""
-echo "2. JMeter 테스트 실행 중..."
+echo "2. JMeter 테스트 실행 중: $SCENARIO"
 echo ""
+
+rm -f "$RESULT_FILE"
+rm -rf "$REPORT_DIR"
 
 # JMeter 실행
 "$JMETER_BIN/jmeter" -n -t "$TEST_PLAN" -l "$RESULT_FILE" -e -o "$REPORT_DIR"

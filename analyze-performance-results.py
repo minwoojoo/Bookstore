@@ -10,98 +10,133 @@ import seaborn as sns
 import numpy as np
 from pathlib import Path
 import argparse
+import re
 
 def load_jmeter_results(file_path):
     """JMeter 결과 파일 로드"""
     try:
         df = pd.read_csv(file_path, sep=',')
+        df['success'] = df['success'].astype(str).str.lower() == 'true'
         return df
     except Exception as e:
-        print(f"파일 로드 오류: {e}")
+        print(f"파일 로드 오류 ({file_path}): {e}")
         return None
 
-def analyze_performance(df):
+def load_comparison_results(nplus1_file, optimized_file):
+    """N+1 결과와 최적화 결과 파일 로드"""
+    nplus1_df = load_jmeter_results(nplus1_file)
+    optimized_df = load_jmeter_results(optimized_file)
+
+    if nplus1_df is None or optimized_df is None:
+        return None
+
+    nplus1_df = nplus1_df.copy()
+    optimized_df = optimized_df.copy()
+    nplus1_df['scenario'] = 'N+1 Problem'
+    optimized_df['scenario'] = 'Optimized'
+    nplus1_df['endpoint'] = nplus1_df['label'].apply(normalize_endpoint_label)
+    optimized_df['endpoint'] = optimized_df['label'].apply(normalize_endpoint_label)
+
+    return pd.concat([nplus1_df, optimized_df], ignore_index=True)
+
+def normalize_endpoint_label(label):
+    """비교가 가능하도록 라벨에서 시나리오 접두어를 제거"""
+    label = str(label)
+    label = re.sub(r'^(N\+1 Problem|Optimized)\s*-\s*', '', label, flags=re.IGNORECASE)
+    return label.strip()
+
+def calculate_stats(df):
+    """응답 시간과 오류율 통계 계산"""
+    total = len(df)
+    errors = len(df[df['success'] == False])
+    elapsed_sum_seconds = df['elapsed'].sum() / 1000
+
+    return {
+        'count': total,
+        'avg': df['elapsed'].mean(),
+        'median': df['elapsed'].median(),
+        'p95': df['elapsed'].quantile(0.95),
+        'max': df['elapsed'].max(),
+        'min': df['elapsed'].min(),
+        'throughput': total / elapsed_sum_seconds if elapsed_sum_seconds > 0 else 0,
+        'errors': errors,
+        'error_rate': (errors / total) * 100 if total > 0 else 0,
+    }
+
+def improvement_percent(before, after):
+    """값이 낮을수록 좋은 지표의 개선율"""
+    if before == 0:
+        return 0
+    return ((before - after) / before) * 100
+
+def throughput_improvement_percent(before, after):
+    """값이 높을수록 좋은 처리량 개선율"""
+    if before == 0:
+        return 0
+    return ((after - before) / before) * 100
+
+def print_stats(name, stats):
+    print(f"{name}:")
+    print(f"  - 요청 수: {stats['count']}")
+    print(f"  - 평균: {stats['avg']:.2f}ms")
+    print(f"  - 중간값: {stats['median']:.2f}ms")
+    print(f"  - 95%ile: {stats['p95']:.2f}ms")
+    print(f"  - 최소/최대: {stats['min']:.2f}ms / {stats['max']:.2f}ms")
+    print(f"  - 처리량: {stats['throughput']:.2f} requests/sec")
+    print(f"  - 오류율: {stats['error_rate']:.2f}% ({stats['errors']}/{stats['count']})")
+
+def analyze_performance(df, nplus1_file, optimized_file):
     """성능 분석"""
     if df is None:
         return
-    
-    # 기본 통계
+
     print("=" * 60)
-    print("성능 테스트 결과 분석")
+    print("JMeter 성능 테스트 결과 비교")
     print("=" * 60)
+    print(f"N+1 결과 파일: {nplus1_file}")
+    print(f"최적화 결과 파일: {optimized_file}")
     
-    # 테스트별 그룹화
-    n_plus_1_tests = df[df['label'].str.contains('N\+1|n-plus-1', case=False, na=False)]
-    optimized_tests = df[df['label'].str.contains('Optimized|optimized', case=False, na=False)]
+    n_plus_1_tests = df[df['scenario'] == 'N+1 Problem']
+    optimized_tests = df[df['scenario'] == 'Optimized']
+    n1_stats = calculate_stats(n_plus_1_tests)
+    opt_stats = calculate_stats(optimized_tests)
     
     print(f"\n1. 전체 테스트 수: {len(df)}")
-    print(f"   - N+1 문제 발생 방식: {len(n_plus_1_tests)}")
-    print(f"   - LEFT JOIN FETCH 최적화 방식: {len(optimized_tests)}")
+    print(f"   - N+1 문제 발생 방식: {n1_stats['count']}")
+    print(f"   - LEFT JOIN FETCH 최적화 방식: {opt_stats['count']}")
     
     # 응답 시간 분석
-    print(f"\n2. 응답 시간 분석 (밀리초)")
+    print(f"\n2. 전체 성능 비교")
     print("-" * 40)
-    
-    if not n_plus_1_tests.empty:
-        n1_avg = n_plus_1_tests['elapsed'].mean()
-        n1_median = n_plus_1_tests['elapsed'].median()
-        n1_95th = n_plus_1_tests['elapsed'].quantile(0.95)
-        n1_max = n_plus_1_tests['elapsed'].max()
-        
-        print(f"N+1 문제 발생 방식:")
-        print(f"  - 평균: {n1_avg:.2f}ms")
-        print(f"  - 중간값: {n1_median:.2f}ms")
-        print(f"  - 95%ile: {n1_95th:.2f}ms")
-        print(f"  - 최대값: {n1_max:.2f}ms")
-    
-    if not optimized_tests.empty:
-        opt_avg = optimized_tests['elapsed'].mean()
-        opt_median = optimized_tests['elapsed'].median()
-        opt_95th = optimized_tests['elapsed'].quantile(0.95)
-        opt_max = optimized_tests['elapsed'].max()
-        
-        print(f"\nLEFT JOIN FETCH 최적화 방식:")
-        print(f"  - 평균: {opt_avg:.2f}ms")
-        print(f"  - 중간값: {opt_median:.2f}ms")
-        print(f"  - 95%ile: {opt_95th:.2f}ms")
-        print(f"  - 최대값: {opt_max:.2f}ms")
-    
-    # 성능 개선율 계산
-    if not n_plus_1_tests.empty and not optimized_tests.empty:
-        print(f"\n3. 성능 개선 효과")
-        print("-" * 40)
-        
-        avg_improvement = ((n1_avg - opt_avg) / n1_avg) * 100
-        median_improvement = ((n1_median - opt_median) / n1_median) * 100
-        max_improvement = ((n1_max - opt_max) / n1_max) * 100
-        
-        print(f"평균 응답 시간 개선: {avg_improvement:.1f}%")
-        print(f"중간값 응답 시간 개선: {median_improvement:.1f}%")
-        print(f"최대 응답 시간 개선: {max_improvement:.1f}%")
-        
-        # 처리량 분석
-        n1_throughput = len(n_plus_1_tests) / (n_plus_1_tests['elapsed'].sum() / 1000)
-        opt_throughput = len(optimized_tests) / (optimized_tests['elapsed'].sum() / 1000)
-        throughput_improvement = ((opt_throughput - n1_throughput) / n1_throughput) * 100
-        
-        print(f"\n처리량 개선:")
-        print(f"  - N+1 방식: {n1_throughput:.2f} requests/sec")
-        print(f"  - 최적화 방식: {opt_throughput:.2f} requests/sec")
-        print(f"  - 처리량 개선: {throughput_improvement:.1f}%")
-    
-    # 오류율 분석
-    print(f"\n4. 오류율 분석")
+    print_stats("N+1 문제 발생 방식", n1_stats)
+    print()
+    print_stats("LEFT JOIN FETCH 최적화 방식", opt_stats)
+
+    print(f"\n3. 개선 효과")
     print("-" * 40)
-    
-    if not n_plus_1_tests.empty:
-        n1_errors = len(n_plus_1_tests[n_plus_1_tests['success'] == False])
-        n1_error_rate = (n1_errors / len(n_plus_1_tests)) * 100
-        print(f"N+1 문제 발생 방식: {n1_error_rate:.2f}% ({n1_errors}/{len(n_plus_1_tests)})")
-    
-    if not optimized_tests.empty:
-        opt_errors = len(optimized_tests[optimized_tests['success'] == False])
-        opt_error_rate = (opt_errors / len(optimized_tests)) * 100
-        print(f"LEFT JOIN FETCH 최적화 방식: {opt_error_rate:.2f}% ({opt_errors}/{len(optimized_tests)})")
+    print(f"평균 응답 시간 개선: {improvement_percent(n1_stats['avg'], opt_stats['avg']):.1f}%")
+    print(f"중간값 응답 시간 개선: {improvement_percent(n1_stats['median'], opt_stats['median']):.1f}%")
+    print(f"95%ile 응답 시간 개선: {improvement_percent(n1_stats['p95'], opt_stats['p95']):.1f}%")
+    print(f"최대 응답 시간 개선: {improvement_percent(n1_stats['max'], opt_stats['max']):.1f}%")
+    print(f"처리량 개선: {throughput_improvement_percent(n1_stats['throughput'], opt_stats['throughput']):.1f}%")
+    print(f"오류율 변화: {n1_stats['error_rate']:.2f}% -> {opt_stats['error_rate']:.2f}%")
+
+    print(f"\n4. 엔드포인트별 비교")
+    print("-" * 40)
+    for endpoint in sorted(df['endpoint'].dropna().unique()):
+        n1_endpoint = n_plus_1_tests[n_plus_1_tests['endpoint'] == endpoint]
+        opt_endpoint = optimized_tests[optimized_tests['endpoint'] == endpoint]
+        if n1_endpoint.empty or opt_endpoint.empty:
+            continue
+
+        n1_endpoint_stats = calculate_stats(n1_endpoint)
+        opt_endpoint_stats = calculate_stats(opt_endpoint)
+        print(f"{endpoint}:")
+        print(f"  - 평균: {n1_endpoint_stats['avg']:.2f}ms -> {opt_endpoint_stats['avg']:.2f}ms "
+              f"({improvement_percent(n1_endpoint_stats['avg'], opt_endpoint_stats['avg']):.1f}% 개선)")
+        print(f"  - 95%ile: {n1_endpoint_stats['p95']:.2f}ms -> {opt_endpoint_stats['p95']:.2f}ms "
+              f"({improvement_percent(n1_endpoint_stats['p95'], opt_endpoint_stats['p95']):.1f}% 개선)")
+        print(f"  - 오류율: {n1_endpoint_stats['error_rate']:.2f}% -> {opt_endpoint_stats['error_rate']:.2f}%")
 
 def create_visualization(df, output_dir="performance-charts"):
     """시각화 생성"""
@@ -115,9 +150,8 @@ def create_visualization(df, output_dir="performance-charts"):
     plt.rcParams['font.family'] = 'DejaVu Sans'
     plt.rcParams['axes.unicode_minus'] = False
     
-    # 테스트별 그룹화
-    n_plus_1_tests = df[df['label'].str.contains('N\+1|n-plus-1', case=False, na=False)]
-    optimized_tests = df[df['label'].str.contains('Optimized|optimized', case=False, na=False)]
+    n_plus_1_tests = df[df['scenario'] == 'N+1 Problem']
+    optimized_tests = df[df['scenario'] == 'Optimized']
     
     # 1. 응답 시간 분포 비교
     plt.figure(figsize=(12, 8))
@@ -135,9 +169,7 @@ def create_visualization(df, output_dir="performance-charts"):
     # 2. 응답 시간 박스플롯
     plt.subplot(2, 2, 2)
     if not n_plus_1_tests.empty and not optimized_tests.empty:
-        data_to_plot = [n_plus_1_tests['elapsed'], optimized_tests['elapsed']]
-        labels = ['N+1 Problem', 'Optimized']
-        plt.boxplot(data_to_plot, labels=labels)
+        sns.boxplot(data=df, x='scenario', y='elapsed', order=['N+1 Problem', 'Optimized'])
         plt.ylabel('Response Time (ms)')
         plt.title('Response Time Box Plot')
         plt.grid(True, alpha=0.3)
@@ -180,14 +212,16 @@ def create_visualization(df, output_dir="performance-charts"):
     
     plt.tight_layout()
     plt.savefig(f'{output_dir}/performance_analysis.png', dpi=300, bbox_inches='tight')
-    plt.show()
+    plt.close()
     
     print(f"\n시각화 차트가 '{output_dir}/performance_analysis.png'에 저장되었습니다.")
 
 def main():
-    parser = argparse.ArgumentParser(description='JMeter 성능 테스트 결과 분석')
-    parser.add_argument('--file', '-f', default='performance-test-results.jtl', 
-                       help='JMeter 결과 파일 경로')
+    parser = argparse.ArgumentParser(description='JMeter N+1/최적화 성능 테스트 결과 비교')
+    parser.add_argument('--nplus1', default='performance-results-nplus1.jtl',
+                       help='N+1 방식 JMeter 결과 파일 경로')
+    parser.add_argument('--optimized', default='performance-results-optimized.jtl',
+                       help='최적화 방식 JMeter 결과 파일 경로')
     parser.add_argument('--output', '-o', default='performance-charts',
                        help='차트 출력 디렉토리')
     parser.add_argument('--no-chart', action='store_true',
@@ -195,14 +229,11 @@ def main():
     
     args = parser.parse_args()
     
-    # 결과 파일 로드
-    df = load_jmeter_results(args.file)
+    df = load_comparison_results(args.nplus1, args.optimized)
     
     if df is not None:
-        # 성능 분석
-        analyze_performance(df)
+        analyze_performance(df, args.nplus1, args.optimized)
         
-        # 시각화 생성
         if not args.no_chart:
             create_visualization(df, args.output)
     else:

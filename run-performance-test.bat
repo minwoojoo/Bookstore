@@ -1,42 +1,82 @@
 @echo off
+setlocal
+
+cd /d "%~dp0"
+
 echo ========================================
-echo JMeter 성능 테스트 실행 스크립트
+echo JMeter Performance Test
 echo ========================================
 
-REM JMeter 설치 경로 설정 (실제 설치 경로로 변경 필요)
-set JMETER_HOME=C:\apache-jmeter-5.6.2
-set JMETER_BIN=%JMETER_HOME%\bin
+set "JMETER_HOME=C:\apache-jmeter-5.6.3"
+set "JMETER_BIN=%JMETER_HOME%\bin\"
+set "SCENARIO=%~1"
 
-REM 테스트 계획 파일 경로
-set TEST_PLAN=jmeter-test-plan.jmx
+if "%SCENARIO%"=="" (
+  echo Usage: run-performance-test.bat nplus1 ^| optimized
+  echo.
+  echo Run nplus1 first, restart the Spring Boot server, then run optimized.
+  exit /b 1
+)
 
-REM 결과 파일 경로
-set RESULT_FILE=performance-test-results.jtl
-set REPORT_DIR=performance-report
+if /i "%SCENARIO%"=="nplus1" (
+  set "TEST_PLAN=jmeter-test-plan-nplus1.jmx"
+  set "RESULT_FILE=performance-results-nplus1.jtl"
+  set "REPORT_DIR=performance-report-nplus1"
+) else if /i "%SCENARIO%"=="optimized" (
+  set "TEST_PLAN=jmeter-test-plan-optimized.jmx"
+  set "RESULT_FILE=performance-results-optimized.jtl"
+  set "REPORT_DIR=performance-report-optimized"
+) else (
+  echo Unknown scenario: %SCENARIO%
+  echo Usage: run-performance-test.bat nplus1 ^| optimized
+  exit /b 1
+)
+
+if not exist "%JMETER_HOME%\bin\jmeter.bat" (
+  echo JMeter was not found: %JMETER_HOME%\bin\jmeter.bat
+  exit /b 1
+)
 
 echo.
-echo 1. 애플리케이션 실행 확인...
-echo    http://localhost:8080/api/performance/books/n-plus-1
-echo    http://localhost:8080/api/performance/books/optimized
+echo 1. Check that the application is running:
+if /i "%SCENARIO%"=="nplus1" (
+  echo    http://localhost:8080/api/performance/books/n-plus-1
+) else (
+  echo    http://localhost:8080/api/performance/books/optimized
+)
 echo.
-echo 2. JMeter 테스트 실행 중...
+echo 2. Running JMeter test: %SCENARIO%
 echo.
 
-REM JMeter 실행
-"%JMETER_BIN%\jmeter.bat" -n -t %TEST_PLAN% -l %RESULT_FILE% -e -o %REPORT_DIR%
+if exist "%RESULT_FILE%" del /f /q "%RESULT_FILE%"
+if exist "%REPORT_DIR%" (
+  echo Removing existing report directory: %REPORT_DIR%
+  rmdir /s /q "%REPORT_DIR%"
+)
+
+if exist "%REPORT_DIR%" (
+  echo.
+  echo Could not remove %REPORT_DIR%.
+  echo Close any browser or editor using files in that directory and try again.
+  exit /b 1
+)
+
+call "%JMETER_HOME%\bin\jmeter.bat" -n -t "%TEST_PLAN%" -l "%RESULT_FILE%" -e -o "%REPORT_DIR%"
+if errorlevel 1 (
+  echo.
+  echo JMeter test failed.
+  exit /b %ERRORLEVEL%
+)
 
 echo.
 echo ========================================
-echo 테스트 완료!
+echo Test complete.
 echo ========================================
 echo.
-echo 결과 파일:
-echo - %RESULT_FILE% (원시 데이터)
-echo - %REPORT_DIR%\ (HTML 리포트)
+echo Result files:
+echo - %RESULT_FILE%
+echo - %REPORT_DIR%\
 echo.
-echo 결과 분석:
-echo 1. %REPORT_DIR%\index.html 파일을 브라우저에서 열어보세요
-echo 2. 응답 시간, 처리량, 오류율 등을 비교해보세요
-echo.
+echo Open %REPORT_DIR%\index.html to review response time, throughput, and error rate.
 
-pause
+endlocal
