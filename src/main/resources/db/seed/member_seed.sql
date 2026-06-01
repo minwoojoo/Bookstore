@@ -2,7 +2,7 @@
 -- 중복 삽입 방지를 위해 INSERT IGNORE 사용
 
 -- 회원 더미 데이터 (20명)
--- 비밀번호: user1234 (BCrypt 해시값)
+-- 비밀번호: user1234! (BCrypt 해시값)
 INSERT IGNORE INTO member (member_id, user_id, password, name, email, phone, member_grade, status, registration_date, last_login)
 VALUES
     (1, 'user1', '$2a$10$N.zmdr9k7uOCQb376NoUnuTJ8iAt6Z5EHsM8lE9lBOsl7iKTVEFDi', '김독자', 'user1@example.com', '010-1234-5678', 'GOLD', 'ACTIVE', '2024-01-15 10:30:00', '2024-12-15 14:20:00'),

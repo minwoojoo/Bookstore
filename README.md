@@ -12,10 +12,16 @@ Spring Boot 기반의 온라인 서점 웹 애플리케이션입니다. Yes24와
   - 회원가입 이메일 인증, 비밀번호 찾기/재설정
   - 마이페이지 회원 정보 수정 및 배송지 관리
 
+  ![로그인 및 마이페이지 시연](gif-file/로그인및마이페이지.gif)
+
 - **도서 및 콘텐츠 서비스**
   - 카테고리별 도서 목록, 전체 도서 목록, 검색, 상세 조회
   - 도서-저자 다대다 관계와 카테고리/재고 정보를 포함한 도서 도메인 설계
   - 최근 본 상품, 인기 검색어, 리뷰 및 평점 기능
+
+  ![도서 검색 시연](gif-file/도서검색.gif)
+
+  ![리뷰 작성 시연](gif-file/리뷰쓰기.gif)
 
 - **장바구니 및 주문/결제**
   - 장바구니 담기, 수량 변경, 선택 삭제
@@ -23,11 +29,15 @@ Spring Boot 기반의 온라인 서점 웹 애플리케이션입니다. Yes24와
   - Toss Payments 테스트 결제 연동 및 결제 성공/실패 처리
   - 주문 상태 관리와 `OrderStatusHistory` 기반 상태 이력 모델 구성
 
+  ![장바구니 담기 및 결제 시연](gif-file/장바구니담기및결제.gif)
+
 - **관리자 백오피스**
   - 매출, 주문, 회원, 도서 현황을 확인하는 대시보드
   - 도서 등록, 목록/상세 조회, 검색/필터링, 재고 수정
   - 회원 목록/상세 조회, 회원별 주문 내역 조회
   - 주문 목록/상세 조회 및 주문 상태 변경
+
+  ![관리자 페이지 시연](gif-file/관리자페이지.gif)
 
 ### 2. 기술 스택 및 아키텍처 특징
 - **Backend**: Java 21, Spring Boot 3.x 기반의 Controller-Service-Repository-Entity 레이어드 아키텍처
@@ -37,6 +47,32 @@ Spring Boot 기반의 온라인 서점 웹 애플리케이션입니다. Yes24와
 - **Frontend**: JSP, Bootstrap, JavaScript 기반의 서버 사이드 렌더링 화면 구성
 - **실행 환경**: Docker Compose로 MySQL과 Spring Boot 애플리케이션을 함께 실행할 수 있도록 구성
 - **초기 데이터**: 카테고리, 도서, 저자, 회원, 리뷰, 재고 등 seed SQL을 통한 데이터 초기화 지원
+
+#### 시스템 아키텍처
+
+```mermaid
+flowchart LR
+    User["사용자 브라우저<br/>Chrome / Web Client"]
+
+    subgraph Docker["Docker Compose 환경"]
+        App["bookstore-app<br/>Spring Boot 3.x<br/>JSP / Controller / Service / Repository<br/>localhost:8080"]
+        DB["bookstore-mysql<br/>MySQL 8.0<br/>container: mysql:3306<br/>host: localhost:33006"]
+        Volume["mysql-data<br/>Docker Volume"]
+    end
+
+    ExternalPayment["Toss Payments<br/>테스트 결제 API"]
+    ExternalMail["Naver SMTP<br/>이메일 인증 / 비밀번호 재설정"]
+
+    User -->|"HTTP 요청<br/>localhost:8080"| App
+    App -->|"Spring Data JPA / Hibernate<br/>JDBC"| DB
+    DB -->|"데이터 영속화"| Volume
+    App -->|"결제 승인 / 실패 처리"| ExternalPayment
+    App -->|"인증 메일 발송"| ExternalMail
+```
+
+- Docker Compose 전체 실행 시 `bookstore-app` 컨테이너는 Docker 내부 네트워크에서 `mysql:3306`으로 MySQL에 접속합니다.
+- 로컬에서 Spring Boot를 실행하는 경우 애플리케이션은 `localhost:33006`으로 Docker MySQL에 접속합니다.
+- 브라우저는 `localhost:8080`으로 Spring Boot 애플리케이션에 접근하고, JSP 기반 화면과 REST API 요청을 처리합니다.
 
 ### 3. 차별화 포인트
 - JMeter와 Python 분석 스크립트를 활용해 JPA N+1 문제와 Fetch Join 최적화 효과를 정량적으로 검증했습니다.
@@ -50,7 +86,21 @@ Spring Boot 기반의 온라인 서점 웹 애플리케이션입니다. Yes24와
 
 ![N+1 방식 JMeter 대시보드](performance-analysis/nplus1대시보드.png)
 
+`nplus1` : N+1 문제가 발생하는 기존 조회 방식 JMeter 대시보드 
+
+- 전체 도서 조회 평균 시간 : 5171.15ms => 약 200권 전체 조회 시 가장 큰 병목이 발생했습니다.
+- 카테고리별 도서 조회 평균 시간 : 28.95ms => 반환 데이터가 적어 평균 응답 시간은 낮게 측정되었습니다.
+- 검색 도서 조회 평균 시간 : 26.27ms => 검색 조건으로 조회 범위가 줄어 평균 응답 시간은 낮게 측정되었습니다.
+- 전체 처리량 : 5.56 transactions/sec 
+
 ![Fetch Join 최적화 방식 JMeter 대시보드](performance-analysis/optimized대시보드.png)
+
+`optimized` : Fetch Join을 적용한 최적화 조회 방식 JMeter 대시보드 
+
+- 전체 도서 조회 평균 시간 : 187.59ms => N+1 방식 대비 약 96.4% 개선되었습니다.
+- 카테고리별 도서 조회 평균 시간 : 21.68ms => N+1 방식보다 소폭 개선되었습니다.
+- 검색 도서 조회 평균 시간 : 29.66ms => N+1 방식보다 평균 시간은 소폭 증가했습니다.
+- 전체 처리량 : 70.42 transactions/sec 
 
 ![N+1 vs Optimized 성능 분석 차트](performance-analysis/performance_analysis.png)
 
