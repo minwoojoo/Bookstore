@@ -52,19 +52,19 @@ Spring Boot 기반의 온라인 서점 웹 애플리케이션입니다. Yes24와
 
 ```mermaid
 flowchart LR
-    User["사용자 브라우저<br/>Chrome / Web Client"]
+    User["사용자 브라우저"]
 
     subgraph Docker["Docker Compose 환경"]
-        App["bookstore-app<br/>Spring Boot 3.x<br/>JSP / Controller / Service / Repository<br/>localhost:8080"]
-        DB["bookstore-mysql<br/>MySQL 8.0<br/>container: mysql:3306<br/>host: localhost:33006"]
-        Volume["mysql-data<br/>Docker Volume"]
+        App["bookstore-app"]
+        DB["bookstore-mysql"]
+        Volume["mysql-data"]
     end
 
-    ExternalPayment["Toss Payments<br/>테스트 결제 API"]
-    ExternalMail["Naver SMTP<br/>이메일 인증 / 비밀번호 재설정"]
+    ExternalPayment["Toss Payments API"]
+    ExternalMail["Naver SMTP"]
 
-    User -->|"HTTP 요청<br/>localhost:8080"| App
-    App -->|"Spring Data JPA / Hibernate<br/>JDBC"| DB
+    User -->|"HTTP 요청"| App
+    App -->|"Spring Data JPA / Hibernate"| DB
     DB -->|"데이터 영속화"| Volume
     App -->|"결제 승인 / 실패 처리"| ExternalPayment
     App -->|"인증 메일 발송"| ExternalMail
